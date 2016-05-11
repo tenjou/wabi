@@ -5,9 +5,10 @@ wabi.element.basic = function(parent, createParams)
 	if(this.create) {
 		this.create(createParams);
 	}
-	else {
+	
+	if(!this.domElement) {
 		this.domElement = document.createElement(this.tag);
-	}	
+	}
 	
 	this.initState();
 
@@ -15,9 +16,13 @@ wabi.element.basic = function(parent, createParams)
 
 	if(this.initialEvents)
 	{
-		for(var n = 0; n < this.initialEvents.length; n++) {
-			var eventId = this.initialEvents[n];
-			this.domElement["on" + eventId] = this.genEventFunc(eventId);
+		for(var n = 0; n < this.initialEvents.length; n++) 
+		{
+			var event = this.initialEvents[n];
+			var eventKey = "on" + event;
+			if(this.domElement[eventKey] === null) {
+				this.domElement[eventKey] = this.genEventFunc(event);
+			}
 		}
 	}
 
@@ -193,21 +198,33 @@ wabi.element.basic.prototype =
 		this.children.length = 0;
 	},
 
-	genEventFunc: function(name, func) 
+	genEventFunc: function(name) 
 	{
 		var self = this;
+
+		var eventKey = "on" + name;
+		if(this.domElement[eventKey] === null) {
+			this.domElement[eventKey] = this.genEventFunc(event);
+		}
+
+		var func = this["handle_" + name];
+		if(func) 
+		{
+			return function(domEvent) 
+			{
+				domEvent.stopPropagation();
+
+				var event = self.createEvent(name, domEvent);
+				func.call(self, event);
+				self.emit(name, event);
+			};
+		}
 
 		return function(domEvent) 
 		{
 			domEvent.stopPropagation();
 
 			var event = self.createEvent(name, domEvent);
-
-			var func = this["handle_" + name];
-			if(func) {
-				func.call(self, event);
-			}
-			
 			self.emit(name, event);
 		};
 	},
@@ -259,79 +276,100 @@ wabi.element.basic.prototype =
 		}
 	},	
 
-	emit: function(name, event)
+	emit: function(eventName, event)
 	{
-		if(this.events) 
-		{
-			var eventBuffer, buffer;
+		if(!this.listeners) { return; }
 
-			if(this.events[event.name]) {
-				eventBuffer = this.events[event.name];
-			}
-			else if(this.events["*"]) {
-				eventBuffer = this.events["*"];
-			}
+		var buffer = this.listeners[eventName];
+		if(!buffer) { return; }
 
-			if(eventBuffer)
-			{
-				var stop = false;
-
-				buffer = eventBuffer[event.id];
-				if(buffer) 
-				{
-					for(var n = 0; n < buffer.length; n++) 
-					{
-						if(buffer[n](event)) {
-							stop = true;
-						}
-					}
-				}
-				
-				buffer = eventBuffer["*"];
-				if(buffer) 
-				{
-					for(var n = 0; n < buffer.length; n++) 
-					{
-						if(buffer[n](event)) {
-							stop = true;
-						}
-					}
-				}
-
-				if(stop) {
-					return;
-				}
-			}
+		for(var n = 0; n < buffer.length; n++) {
+			buffer[n](event);
 		}
+
+		// if(this.listeners) 
+		// {
+		// 	var eventBuffer, buffer;
+
+		// 	if(this.listeners[event.name]) {
+		// 		eventBuffer = this.events[event.name];
+		// 	}
+		// 	else if(this.listeners["*"]) {
+		// 		eventBuffer = this.events["*"];
+		// 	}
+
+		// 	if(eventBuffer)
+		// 	{
+		// 		var stop = false;
+
+		// 		buffer = eventBuffer[event.id];
+		// 		if(buffer) 
+		// 		{
+		// 			for(var n = 0; n < buffer.length; n++) 
+		// 			{
+		// 				if(buffer[n](event)) {
+		// 					stop = true;
+		// 				}
+		// 			}
+		// 		}
+				
+		// 		buffer = eventBuffer["*"];
+		// 		if(buffer) 
+		// 		{
+		// 			for(var n = 0; n < buffer.length; n++) 
+		// 			{
+		// 				if(buffer[n](event)) {
+		// 					stop = true;
+		// 				}
+		// 			}
+		// 		}
+
+		// 		if(stop) {
+		// 			return;
+		// 		}
+		// 	}
+		// }
+
+		// if(!this.parent) {
+		// 	return;
+		// }
+
+		// if(this.pickable)
+		// {
+		// 	if(!event.id) {
+		// 		event.id = this.id ? this.id : this.elementTag;
+		// 	}
+		// 	else {
+		// 		event.id = (this.id ? this.id : this.elementTag) + "." + event.id;
+		// 	}
+		// }
+		
+		// this.parent._emit(event);		
 	},
 
-	on: function(event, id, cb)
+	on: function(event, cb, owner)
 	{
-		if(!cb && typeof(id) === "function") {
-			cb = id;
-			id = "*";
-		}
-
-		if(!this.events) {
-			this.events = {};
-		}
-
-		if(this._domEvents[event] && !this.domElement["on" + event]) {
-			this.domElement["on" + event] = this.genEventFunc(event);
-		}
-
-		var eventBuffer = this.events[event];
-		if(!eventBuffer) {
-			eventBuffer = {};
-			this.events[event] = eventBuffer;
-		}
-
-		if(eventBuffer[id]) {
-			eventBuffer[id].push(cb);
+		if(!this.listeners) {
+			this.listeners = {};
+			this.listeners = [ cb.bind(this) ];
 		}
 		else {
-			eventBuffer[id] = [ cb ];
+			this.listeners.push(cb.bind(this));
 		}
+
+		var buffer = this.listeners[event];
+		if(!buffer) {
+			buffer = [];
+			this.listeners[event] = buffer;
+			this.genEventFunc(event);
+		}
+
+		buffer.push(cb.bind(this));
+	},
+
+	off: function(event, owner)
+	{
+
 	},
 
 	set id(id)
@@ -404,7 +442,7 @@ wabi.element.basic.prototype =
 	{
 		if(this._stateValues[name] === value) { return; }
 
-		if(this._data)
+		if(this._data && this._bind)
 		{
 			if(typeof(this._bind) === "string" && name === "value") {
 				this._data.set(this._bind, value);
@@ -614,8 +652,9 @@ wabi.element.basic.prototype =
 	//
 	_id: null,
 	tag: "_",
-	events: null,
-	initialEvents: null,
+
+	listeners: null,
+	initialEvents: [],
 
 	domElement: null,
 	children: null,
@@ -628,16 +667,7 @@ wabi.element.basic.prototype =
 	_stateSetters: null,
 	_bind: null,
 
-	_hidden: false,
-
-	//
-	_domEvents: {
-		click: true,
-		contextmenu: true,
-		dragstart: true,
-		dragleave: true,
-		drop: true
-	}
+	_hidden: false
 };
 
 Element.prototype.holder = null;

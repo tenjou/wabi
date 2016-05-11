@@ -89,9 +89,9 @@ var wabi =
 		Object.assign(element.prototype, proto);
 
 		var events = [];
-		var searchFor = "handle_";
 		for(var key in element.prototype) 
 		{
+			var searchFor = "handle_";
 			var index = key.indexOf(searchFor);
 			if(index !== -1) {
 				events.push(key.slice(searchFor.length));
