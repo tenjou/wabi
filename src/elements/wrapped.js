@@ -2,7 +2,14 @@
 
 wabi.element("wrapped", 
 {
-	create: function(params) {
-		this.domElement = params;
+	create: function(params) 
+	{
+		if(typeof(params) === "string") {
+			this.tag = params;
+		}
+		else if(params instanceof Element) {
+			this.tag = params.tagName;
+			this.domElement = params;
+		}
 	},
 });

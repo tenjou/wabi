@@ -1,69 +1,60 @@
 "use strict";
 
-wabi.element.basic = function(parent, createParams)
+wabi.element.basic = function(parent, params)
 {	
+	var metadata = this.__metadata;
+	var links = metadata.links;
+
+	this.__state = new metadata.stateCls(this);
+
 	if(this.create) {
-		this.create(createParams);
+		this.create(params);
 	}
 	
 	if(!this.domElement) {
-		this.domElement = document.createElement(this.tag);
+		this.domElement = document.createElement(this.tag ? this.tag : metadata.name);
 	}
-	
-	this.initState();
 
-	this.parent = parent;
-
-	if(this.initialEvents)
+	var elements = metadata.elements;
+	if(elements)
 	{
-		for(var n = 0; n < this.initialEvents.length; n++) 
+		this.elements = {};
+
+		for(var key in elements) 
 		{
-			var event = this.initialEvents[n];
-			var eventKey = "on" + event;
-			if(this.domElement[eventKey] === null) {
-				this.domElement[eventKey] = this.genEventFunc(event);
+			var element = wabi.createElement(elements[key], this);
+			this.elements[key] = element;
+
+			if(!element) { continue; }
+
+			if(links) 
+			{
+				var link = links[key];
+				if(link) {
+					this.__state.__values[link] = element.__state;
+				}
 			}
 		}
 	}
 
+	if(metadata.events)
+	{
+		for(var n = 0; n < metadata.events.length; n++) {
+			this.addEventFunc(metadata.events[n]);
+		}
+	}
+
+	this.parent = parent;
+
 	if(this.setup) {
 		this.setup();
 	}
+
+	this.__state.__processStates();
 };
 
 wabi.element.basic.prototype = 
 {
-	initState: function()
-	{
-		if(this.state && this.parent && this.id) 
-		{
-			this._state = new wabi.state();
-			this._stateSetters = {};
-			this.genStateFuncs("value", this.domElement);
-
-			this.parent.state[this.id] = this._state;
-		}
-		else {
-			this._state = new wabi.state();
-			this._stateSetters = {};
-			this.genStateFuncs("value", this.domElement);
-		}
-		
-		if(this._stateValues)
-		{
-			var prevValue = this._stateValues.value;
-			this._stateValues = {
-				value: prevValue
-			};
-		}
-		else
-		{
-			this._stateValues = {
-				value: null
-			};
-		}
-	},
-
 	create: null,
 
 	process_value: function(value) {
@@ -103,7 +94,10 @@ wabi.element.basic.prototype =
 		}
 
 		childHolder._parent = this;
-		childHolder.domElement.appendChild(this.domElement);
+
+		if(this.__enabled) {
+			childHolder.domElement.appendChild(this.domElement);
+		}
 	},
 
 	appendTo: function(parent)
@@ -140,22 +134,12 @@ wabi.element.basic.prototype =
 
 		this._parent = parentHolder;
 
-		if(parentHolder._data) {
-			this._data = parentHolder._data;
+		if(parentHolder.__data) {
+			this.data = parentHolder.__data;
 		}
 		
-		parentHolder.domElement.appendChild(this.domElement);	
-
-		if(this.id) 
-		{
-			Object.defineProperty(parentHolder._state, this.id, {
-				set: function(value) {
-					console.log("here", value)
-				},
-				get: function() {
-					return "";
-				}
-			});
+		if(this.__enabled && parentHolder.domElement) {
+			parentHolder.domElement.appendChild(this.domElement);
 		}
 	},
 
@@ -181,7 +165,10 @@ wabi.element.basic.prototype =
 		this.children.pop();
 
 		child._parent = null;
-		this.domElement.removeChild(child.domElement);
+
+		if(this.__enabled) {
+			this.domElement.removeChild(child.domElement);
+		}
 	},
 
 	removeAll: function()
@@ -198,35 +185,123 @@ wabi.element.basic.prototype =
 		this.children.length = 0;
 	},
 
-	genEventFunc: function(name) 
+	attrib: function(key, value)
 	{
-		var self = this;
-
-		var eventKey = "on" + name;
-		if(this.domElement[eventKey] === null) {
-			this.domElement[eventKey] = this.genEventFunc(event);
+		if(!this.domElement) { 
+			console.warn("(wabi.element.attrib) Invalid DOM element");
+			return null;
 		}
 
-		var func = this["handle_" + name];
-		if(func) 
+		if(value === void(0)) {
+			return this.domElement.getAttribute(key);
+		}
+		else {
+			this.domElement.setAttribute(key, value);
+		}
+		
+		return value;
+	},
+
+	style: function(key, value)
+	{
+		if(!this.domElement) { 
+			console.warn("(wabi.element.style) Invalid DOM element");
+			return null;
+		}
+
+		if(this.domElement.style[key] === void(0)) {
+			console.warn("(wabi.element.style) Invalid DOM style:", key);
+			return null;
+		}
+
+		if(value === void(0)) {
+			return this.domElement.style[key];
+		}
+		else {
+			this.domElement.style[key] = value;
+		}
+		
+		return value;
+	},
+
+	_processClickEvent: function(domEvent)
+	{
+		domEvent.stopPropagation();
+
+		var event;
+		if(domEvent.detail % 2 === 0) 
 		{
-			return function(domEvent) 
+			event = this.createEvent("dblclick", domEvent);
+
+			if(this._onDblClick) {
+				this._onDblClick(event);
+			}
+
+			this.emit("dblclick", event);
+		}
+		else 
+		{
+			event = this.createEvent("dblclick", domEvent);
+
+			if(this._onClick) {
+				this._onClick(event);
+			}
+
+			this.emit("click", event);
+		}
+	},
+
+	_onClick: null,
+
+	_onDblClick: null,
+
+	addEventFunc: function(eventName) 
+	{
+		var func = this["handle_" + eventName];
+
+		if(eventName === "click" || eventName === "dblclick")
+		{
+			if(this.domElement.onclick === null) {
+				this.domElement.onclick = this._processClickEvent.bind(this);
+			}
+			
+			if(eventName === "click") {
+				this._onClick = func.bind(this);
+			}
+			else if(eventName === "dblclick") {
+				this._onDblClick = func.bind(this);
+			}
+		}
+		else 
+		{
+			var self = this;
+			var eventKey = "on" + eventName;
+
+			if(this.domElement[eventKey] === null) 
 			{
-				domEvent.stopPropagation();
+				if(func) 
+				{
+					this.domElement[eventKey] = function(domEvent) 
+						{
+							domEvent.stopPropagation();
 
-				var event = self.createEvent(name, domEvent);
-				func.call(self, event);
-				self.emit(name, event);
-			};
+							var event = self.createEvent(eventName, domEvent);
+							func.call(self, event);
+							self.emit(eventName, event);
+						};
+				}
+				else 
+				{
+					this.domElement[eventKey] = function(domEvent) 
+						{
+							domEvent.stopPropagation();
+
+							var event = self.createEvent(eventName, domEvent);
+							self.emit(eventName, event);
+						};
+				}
+			}
 		}
-
-		return function(domEvent) 
-		{
-			domEvent.stopPropagation();
-
-			var event = self.createEvent(name, domEvent);
-			self.emit(name, event);
-		};
 	},
 
 	createEvent: function(name, domEvent)
@@ -286,85 +361,22 @@ wabi.element.basic.prototype =
 		for(var n = 0; n < buffer.length; n++) {
 			buffer[n](event);
 		}
-
-		// if(this.listeners) 
-		// {
-		// 	var eventBuffer, buffer;
-
-		// 	if(this.listeners[event.name]) {
-		// 		eventBuffer = this.events[event.name];
-		// 	}
-		// 	else if(this.listeners["*"]) {
-		// 		eventBuffer = this.events["*"];
-		// 	}
-
-		// 	if(eventBuffer)
-		// 	{
-		// 		var stop = false;
-
-		// 		buffer = eventBuffer[event.id];
-		// 		if(buffer) 
-		// 		{
-		// 			for(var n = 0; n < buffer.length; n++) 
-		// 			{
-		// 				if(buffer[n](event)) {
-		// 					stop = true;
-		// 				}
-		// 			}
-		// 		}
-				
-		// 		buffer = eventBuffer["*"];
-		// 		if(buffer) 
-		// 		{
-		// 			for(var n = 0; n < buffer.length; n++) 
-		// 			{
-		// 				if(buffer[n](event)) {
-		// 					stop = true;
-		// 				}
-		// 			}
-		// 		}
-
-		// 		if(stop) {
-		// 			return;
-		// 		}
-		// 	}
-		// }
-
-		// if(!this.parent) {
-		// 	return;
-		// }
-
-		// if(this.pickable)
-		// {
-		// 	if(!event.id) {
-		// 		event.id = this.id ? this.id : this.elementTag;
-		// 	}
-		// 	else {
-		// 		event.id = (this.id ? this.id : this.elementTag) + "." + event.id;
-		// 	}
-		// }
-		
-		// this.parent._emit(event);		
 	},
 
 	on: function(event, cb, owner)
 	{
 		if(!this.listeners) {
 			this.listeners = {};
-			this.listeners = [ cb.bind(this) ];
-		}
-		else {
-			this.listeners.push(cb.bind(this));
 		}
 
 		var buffer = this.listeners[event];
 		if(!buffer) {
 			buffer = [];
 			this.listeners[event] = buffer;
-			this.genEventFunc(event);
+			this.addEventFunc(event);
 		}
 
-		buffer.push(cb.bind(this));
+		buffer.push(cb.bind(owner));
 	},
 
 	off: function(event, owner)
@@ -372,35 +384,16 @@ wabi.element.basic.prototype =
 
 	},
 
-	set id(id)
+	addCls: function(name) 
 	{
-		if(this._id === id) { return; }
-
-		if(this.parent) 
-		{
-			if(this.id) {
-
-			}
-			else 
-			{
-				var self = this;
-				Object.defineProperty(this.parent._state, id, {
-					set: function(value) {
-						self.state = value;
-					},
-					get: function() {
-						return self._state;
-					},
-					enumerable: true 
-				});
-			}
-		}
-
-		this._id = id;
+		if(!this.domElement) { return; }
+		this.domElement.classList.add(name);
 	},
 
-	get id() {
-		return this._id;
+	removeCls: function(name) 
+	{
+		if(!this.domElement) { return; }
+		this.domElement.classList.remove(name);
 	},
 
 	set parent(parent)
@@ -438,82 +431,12 @@ wabi.element.basic.prototype =
 		return null;
 	},
 
-	_setStateFunc: function(name, value, func)
-	{
-		if(this._stateValues[name] === value) { return; }
-
-		if(this._data && this._bind)
-		{
-			if(typeof(this._bind) === "string" && name === "value") {
-				this._data.set(this._bind, value);
-			}
-			else 
-			{
-				var dataBindName = this._bind[name];
-				if(dataBindName) {
-					this._data.set(dataBindName, value);
-				}				
-			}
-		}
-		else {
-			this._stateSetters[name](value);
-		}
-	},
-
-	_stateSetterFunc: function(name, value, func)
-	{
-		this._stateValues[name] = value;
-
-		if(func) {
-			func.call(this, value);
-		}
-	},
-
-	genStateFuncs: function(name) 
-	{
-		var self = this;
-		var func = this["process_" + name];
-
-		Object.defineProperty(this._state, name, {
-			set: function(value) {
-				self._setStateFunc(name, value, func);
-			},
-			get: function() {
-				return self._stateValues[name];
-			},
-			enumerable: true 
-		});
-
-		this._stateSetters[name] = function(value) {
-			self._stateSetterFunc(name, value, func)
-		};
-	},	
-
-	set state(state) 
-	{
-		if(state === void(0)) { return; }
-
-		if(state instanceof wabi.state)
-		{
-
-
-			// for(var key in this._state) 
-			// {
-			// 	if(this._state[key] === void(0)) {
-			// 		this.genStateFuncs(key, null);
-			// 	}
-				
-			// 	this._state[key] = state;
-			// }
-		}
-		else
-		{
-			this._state.value = state;
-		}
+	set state(state) {
+		this.__state.__updateLinkState(this.__state, state);
 	},
 
 	get state() {
-		return this._state;
+		return this.__state;
 	},
 
 	set cfg(cfg)
@@ -533,32 +456,29 @@ wabi.element.basic.prototype =
 
 	set data(data)
 	{
-		if(this._data === data) { return; }
+		if(this.__data == data) { return; }
 
-		if(this._data) {
-			this._data.unwatch(this);
-		}
-
-		this._data = data;
-
-		if(data)
+		if(this.__bind)
 		{
-			data.watch(this);
+			if(this.__data) {
+				this.__data.unwatch(this);
+			}
 
-			if(this._bind)
+			if(data)
 			{
-				if(typeof(this._bind) === "string") 
-				{
-					if(data.get(this._bind)) {
-						this.state.value = data.get(this._bind);
-					}
-				}
-				else
-				{
+				data.watch(this);
 
+				if(typeof(this.__bind) === "string")
+				{
+					var value = data.get(this.__bind);
+					if(value) {
+						this.__state.__setState("value", value);
+					}
 				}
 			}
 		}
+
+		this.__data = data;
 
 		if(this.children)
 		{
@@ -569,44 +489,37 @@ wabi.element.basic.prototype =
 	},
 
 	get data() {
-		return this._data;
+		return this.__data;
 	},
 
 	handleDataChange: function(key, value)
 	{
-		if(!this._bind) { return; }
-
-		var func;
-		if(typeof(this._bind) === "string") 
+		var type = typeof(this.__bind);
+		if(type === "string") 
 		{
-			if(key !== this._bind) { return; }
+			if(key !== this.__bind) { return; }
 
-			func = this._stateSetters;
+			this.__state.__setState("value", value);
 		}
-		else
+		else if(type === "object")
 		{
-			var stateKey = this._bind[key];
-			if(!stateKey) { return; }
+			if(this.__bind[key] === void(0)) { return; }
 
-			func = this.state[stateKey];
-		}
-
-		if(func) {
-			func.value(value);
+			this.__state.__setState(this.__bind[key], value);
 		}
 	},
 
 	set bind(bind)
 	{
-		if(this._bind === bind) { return; }
-		this._bind = bind;
+		if(this.__bind === bind) { return; }
+		this.__bind = bind;
 
-		if(!this._data) { return; }
+		if(!this.__data) { return; }
 
-		if(typeof(this._bind) === "string") 
+		if(typeof(this.__bind) === "string") 
 		{
-			if(this._data.get(this._bind)) {
-				this.state.value = this._data.get(this._bind);
+			if(this.__data.get(this.__bind)) {
+				this.state.value = this.__data.get(this._bind);
 			}
 		}
 		else
@@ -618,8 +531,23 @@ wabi.element.basic.prototype =
 	},
 
 	get bind() {
-		return this._bind;
+		return this.__bind;
 	},
+
+	bindState: function(name, value)
+	{
+		if(!(value instanceof wabi.state)) {
+			console.warn("(wabi.state.__bindState) Invalid state object");
+			return; 
+		}
+
+		if(value.__binded) { 
+			console.warn("(wabi.state.__bindState) State is already binded");
+			return; 
+		}
+
+		this.__state.__bindState(name, value);
+	},	
 
 	set hidden(value) 
 	{
@@ -638,6 +566,28 @@ wabi.element.basic.prototype =
 		return this._hidden;
 	},
 
+	set enable(value)
+	{
+		if(this.__enabled === value) { return; }
+		this.__enabled = value;
+
+		if(value) {
+			this.parent.domElement.appendChild(this.domElement);
+		}
+		else {
+			this.parent.domElement.removeChild(this.domElement);
+		}
+	},
+
+	get enable() {
+		return this.__enabled;
+	},
+
+	get: function(id)
+	{
+		console.log(this.domElement.querySelector(id).holder);
+	},
+
 	//
 	Event: function(element, name)
 	{
@@ -650,9 +600,9 @@ wabi.element.basic.prototype =
 	},
 
 	//
-	_id: null,
-	tag: "_",
+	id: null,
 
+	elements: null,
 	listeners: null,
 	initialEvents: [],
 
@@ -661,13 +611,14 @@ wabi.element.basic.prototype =
 
 	_parent: null,
 	_cfg: null,
-	_data: null,
-	_state: null,
-	_stateValues: null,
-	_stateSetters: null,
-	_bind: null,
+	__state: null,
+	__data: null,
+	__bind: null,
 
-	_hidden: false
+	_hidden: false,
+	__enabled: true,
+
+	__meta: null
 };
 
 Element.prototype.holder = null;
