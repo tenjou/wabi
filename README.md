@@ -1,3 +1,3 @@
 # WABI 0.1v [Experimental]
 
-Small yet efficient JavaScript library for building UI that handles databinding and states.
+Small yet an efficient JavaScript library for building UI with data binding.

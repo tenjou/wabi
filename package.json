@@ -1,0 +1,21 @@
+{
+	"name": "wabi",
+	"version": "0.1.0",
+	"description": "Small yet an efficient JavaScript library for building UI with data binding.",
+	"author": "Arturs Šefers <arthur.der.shefer@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tenjou/wabi"
+	},	
+	"scripts": {
+		"build": "npm run build:default & npm run build:uglify",
+		"build:default": "build-replica --input src --concat build/wabi.js",
+		"build:uglify": "build-replica --input src --concat build/wabi.min.js --uglify"
+	},
+	"keywords": [
+		"ui",
+		"binding",
+		"ux"
+	],
+	"license": "MIT"	
+}

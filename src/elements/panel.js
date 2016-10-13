@@ -2,27 +2,41 @@
 
 wabi.element("panel", 
 {
-	content: {
+	state: {
+		header: "Panel"
+	},
+
+	elements: 
+	{
 		header: { 
 			type: "header",
-			link: "value"
+			link: "header"
 		},
 		content: {
 			type: "content",
-			link: "content"
+			link: "value"
 		}
 	},
 
-	params: {
-		value: "header",
-		width: 300
+	set width(width) 
+	{
+		this.style("width", width + "px");
 	},
 
-	process_width: function(value) {
-		this.style("width", value + "px");
+	get width() {
+		return this._width;
 	},
 
-	process_height: function(value) {
-		this.style("min-height", value + "px");
-	}
+	set height(height) 
+	{
+		this.style("min-height", height + "px");		
+	},
+
+	get height() {
+		return this._height;
+	},
+
+	//
+	_width: 0,
+	_height: 0
 });

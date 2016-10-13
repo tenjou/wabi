@@ -2,7 +2,7 @@
 
 wabi.element("html", 
 {
-	process_value: function(value)
+	set_value: function(value)
 	{
 		// TODO: parse by tokens
 		this.domElement.innerHTML = value;

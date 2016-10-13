@@ -2,6 +2,11 @@
 
 wabi.element("text", 
 {
-	//
-	tag: "text"
+	state: {
+		value: ""
+	},
+
+	set_value: function(value) {
+		this.html(value);
+	}
 });

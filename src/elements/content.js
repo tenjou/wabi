@@ -2,28 +2,89 @@
 
 wabi.element("content", 
 {
-	process_value: function(value) 
+	set_value: function(value) 
 	{
-		console.log("set_content")
-
 		this.removeAll();
+
+		this.$loadValue(value);
+	},
+
+	$loadValue: function(value)
+	{
+		if(!value) { return; }
+
+		var type = typeof(value);
 		
-		for(var n = 0; n < value.length; n++)
+		if(type === "object")
 		{
-			var elementCfg = value[n];
-			if(!elementCfg.type) {
-				console.warn("(wabi.element.container) Undefined element type");
-				continue;
+			if(value instanceof Array)
+			{
+				for(var n = 0; n < value.length; n++)
+				{
+					var state = value[n];
+					if(typeof(state) === "string") 
+					{
+						var template = wabi.getFragment(state);
+						this.$loadValue(template);
+					}
+					else {
+						this.$loadState(state);
+					}
+				}	
 			}
-
-			var elementCls = wabi.element[elementCfg.type];
-			if(!elementCls) {
-				console.warn("(wabi.element.container) Undefined element type: " + elementCfg.type);
-				continue;
+			else {
+				this.$loadState(value);
 			}
+		}
+		else 
+		{
+			var template = wabi.getFragment(value);
+			this.$loadValue(template);
+		}		
+	},
 
-			var element = new elementCls(this);
-			element.cfg = elementCfg;
-		}	
-	}
+	$loadState: function(state)
+	{
+		if(!state.type) {
+			console.warn("(wabi.elements.content) Undefined element type");
+			return;
+		}
+
+		var element = wabi.createElement(state.type, this);
+		if(!element) { return; }
+
+		for(var key in state)
+		{
+			if(key === "type") { continue; }
+
+			element[key] = state[key];
+		}
+	},
+
+	set padding(value) 
+	{
+		if(value > 0) {
+			this.style("margin", value + "px");
+		}
+		else if(this.style("margin")) {
+			this.style("margin", "");
+		}
+	},
+
+	get padding() {
+		return this._padding;
+	},
+
+	set height(value) 
+	{
+		this.style("height", value + "px");
+	},
+
+	get height() {
+		return this._height;
+	},
+
+	//
+	_padding: 0,
+	_height: 0	
 });

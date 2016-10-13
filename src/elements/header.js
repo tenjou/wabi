@@ -2,6 +2,7 @@
 
 wabi.element("header", 
 {
-	//
-	tag: "header"
+	set_value: function(value) {
+		this.html(value);
+	}
 });

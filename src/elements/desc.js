@@ -1,16 +1,17 @@
 "use strict";
 
-wabi.element("label",
+wabi.element("desc",
 {
 	elements: 
 	{
-		name: {
-			type: "text",
-			link: "name"
-		},
 		content: {
 			type: "content",
 			link: "value"
+		},
+		name: {
+			type: "text",
+			link: "name"
 		}
 	}
 });
+

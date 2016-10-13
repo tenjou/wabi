@@ -11,5 +11,5 @@ wabi.element("wrapped",
 			this.tag = params.tagName;
 			this.domElement = params;
 		}
-	},
+	}
 });
