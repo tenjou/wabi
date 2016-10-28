@@ -468,6 +468,9 @@ var wabi =
 			proto[key] = elementProto[key];
 		}
 
+		proto.deps = {};
+		proto.depStates = {};
+
 		// Generate setters:
 		var metadata = elementProto._metadata;
 		var statesLinked = metadata.statesLinked;
@@ -532,7 +535,21 @@ var wabi =
 			set: function(value) {
 				this._updateState(key, value);
 			},
-			get: function() {
+			get: function() 
+			{
+				let currDep = wabi.currDep;
+				if(currDep) 
+				{
+					let buffer = currDep.buffer[key];
+					if(!buffer) {
+						buffer = [ currDep.key ];
+						currDep.buffer[key] = buffer;
+					}
+					else {
+						buffer.push(currDep.key);
+					}
+				}
+
 				return this._$[key];
 			}
 		});	
@@ -558,21 +575,6 @@ var wabi =
 		});	
 	},
 
-	addDataset: function(id, data)
-	{
-		if(this.datasets[id]) {
-			console.warn("(wabi.addDataset) There is already dataset with id: " + id);
-			return;
-		}
-
-		if(data instanceof wabi.data) {
-			this.datasets[id] = data.data;
-		}
-		else {
-			this.datasets[id] = data;
-		}
-	},
-
 	assignObj: function(target, src)
 	{
 		for(var key in src) 
@@ -585,6 +587,32 @@ var wabi =
 
 			target[key] = src[key];
 		}
+	},
+
+	pushDependency(key, dep) 
+	{
+		let info = this.freeDependencies.pop();
+		if(!info) {
+			info = new this.Dependency(key, dep);
+		}
+		else {
+			info.key = key;
+			info.dep = dep;
+		}
+
+		this.currDep = info;
+		this.dependencies.push(info);
+	},
+
+	popDependency() 
+	{
+		this.freeDependencies.push(this.dependencies.pop());
+		this.currDep = this.dependencies[this.dependencies.length - 1] || null;
+	},
+
+	Dependency: function(key, buffer) {
+		this.key = key;
+		this.buffer = buffer;
 	},
 
 	metadata: function(name) 
@@ -635,7 +663,10 @@ var wabi =
 
 	elementsCached: {},
 	elementDefs: {},
-	datasets: {},
+
+	dependencies: [],
+	freeDependencies: [],
+	currDep: null,
 
 	fragments: {},
 	templates: {},

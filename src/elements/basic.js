@@ -1,5 +1,7 @@
 "use strict";
 
+"require ../wabi";
+
 // TODO (maybe): If data or binding is removed reset value?
 // TODO: Check if child items can click through
 
@@ -978,18 +980,35 @@ wabi.element("basic",
 			value = this._parent._updateParentStateFunc(this._parentLink, value);
 		}
 
-		var func = this["set_" + key];
+		const func = this["set_" + key];
 		if(func) 
 		{
-			var newValue = func.call(this, value);
+			const haveDepsHandled = this.deps[key];
+			if(!haveDepsHandled) 
+			{
+				let deps = this.depStates;
+				if(!deps) {
+					deps = {};
+					this.depStates = deps;
+				}
+
+				this.deps[key] = true;
+				wabi.pushDependency(key, deps);
+			}
+
+			const newValue = func.call(this, value);
 			if(newValue !== undefined) {
 				value = newValue;
+			}
+
+			if(!haveDepsHandled) {
+				wabi.popDependency();
 			}
 		}
 
 		if(this.watching)
 		{
-			var func = this.watching[key];
+			const func = this.watching[key];
 			if(func) {
 				func.call(this._parent, value);
 			}
@@ -1056,6 +1075,15 @@ wabi.element("basic",
 		if(action === "set") {
 			this._$[key] = value;
 		}
+
+		const dep = this.depStates[key];
+		if(dep)
+		{
+			for(let n = 0; n < dep.length; n++) {
+				let depsKey = dep[n];
+				this._updateState(depsKey, this.$[depsKey]);
+			}
+		}
 	},
 
 	setState: function(key, value)
@@ -1120,9 +1148,26 @@ wabi.element("basic",
 		var func = this["set_" + key];
 		if(func) 
 		{
+			const haveDepsHandled = this.deps[key];
+			if(!haveDepsHandled) 
+			{
+				let deps = this.depStates;
+				if(!deps) {
+					deps = {};
+					this.depStates = deps;
+				}
+
+				this.deps[key] = true;
+				wabi.pushDependency(key, deps);
+			}
+
 			var newValue = func.call(this, value);
 			if(newValue !== undefined) {
 				value = newValue;
+			}
+
+			if(!haveDepsHandled) {
+				wabi.popDependency();
 			}
 		}
 
