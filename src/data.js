@@ -1,5 +1,7 @@
 "use strict";
 
+"require wabi";
+
 if(!window.wabi) {
 	window.wabi = {};
 }

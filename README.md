@@ -1,25 +1,20 @@
 # WABI
 
 [![npm version](https://badge.fury.io/js/wabi.svg)](https://badge.fury.io/js/wabi)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/tenjou/wabi/blob/master/LICENSE)
 
 Small yet an efficient JavaScript library for building UI with data binding.
 
 ## Installation
 
+#### From NPM
 ```
 npm install wabi
 ```
 
-
-
-
 ## Usage
 
-#### Hello World
-```
-let button = wabi.createElement()
-```
+See the [WIKI](https://github.com/tenjou/wabi/wiki) form more for full documentation and examples.
 
 ## License
 

@@ -6,7 +6,8 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tenjou/wabi"
-	},	
+	},
+	"main": "wabi.min.js",
 	"scripts": {
 		"build": "npm run build:default & npm run build:uglify",
 		"build:default": "build-replica --input src --concat build/wabi.js",

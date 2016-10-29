@@ -50,6 +50,10 @@ var wabi =
 		return template;
 	},
 
+	createData: function(data) {
+		return new wabi.data(data || {});
+	},	
+
 	addFragment: function(id, extend, props)
 	{
 		if(!id) {
