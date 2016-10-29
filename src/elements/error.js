@@ -3,29 +3,21 @@
 wabi.element("error", 
 {
 	state: {
+		value: "",
 		types: {}
 	},
 
-	set_value: function(value)
+	render: function() 
 	{
-		if(!value) {
-			this.html("");
-			return;
+		if(!this.$value) {
+			return "";
 		}
 
-		var text = this.$types[value];
+		var text = this.$types[this.$value];
 		if(!text) {
-			this.html("");
-			return; 
+			return "";
 		}
 
-		this.html(text);
-	},
-
-	set_types: function(value)
-	{
-		if(this.$value) {
-			this.set_value(this.$value);
-		}
+		return text;
 	}
 });

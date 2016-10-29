@@ -276,20 +276,21 @@ var wabi =
 			props = newProps;
 		}		
 
-		var states = {};
-		var statesLinked = {};
-		var elementsLinked = {};
-		var elementsBinded = {};
-		var elements = {};
-		var events = [];
-		var proto = {};
-		var numElements = 0;
-		var valueLinked = false;
+		let states = {};
+		let statesLinked = {};
+		let elementsLinked = {};
+		let elementsBinded = {};
+		let elements = {};
+		let events = [];
+		let proto = {};
+		let deps = {};
+		let numElements = 0;
+		let valueLinked = false;
 
 		if(props.elements) 
 		{
-			var elementsProps = props.elements;
-			for(var elementKey in elementsProps)
+			const elementsProps = props.elements;
+			for(let elementKey in elementsProps)
 			{
 				var elementSlotId = elementKey;
 				var item = elementsProps[elementSlotId];
@@ -414,6 +415,17 @@ var wabi =
 			statesProto = states;			
 		}
 
+		if(proto.render) 
+		{
+			const reg = /this\.\$([a-zA-Z]*)/g;
+			let result = reg.exec(proto.render);
+			while(result) 
+			{
+				deps[result[1]] = true;
+				result = reg.exec(proto.render);
+			} while(result);
+		}
+
 		var bindsForElement = {};
 		for(var key in elementsBinded) {
 			bindsForElement[elementsBinded[key]] = key; 
@@ -427,6 +439,7 @@ var wabi =
 		metadata.elementsLinked = elementsLinked;
 		metadata.elementsBinded = elementsBinded;
 		metadata.bindsForElement = bindsForElement;
+		metadata.deps = deps;
 
 		if(numElements > 0) {
 			metadata.elements = elements;
@@ -544,10 +557,12 @@ var wabi =
 				let currDep = wabi.currDep;
 				if(currDep) 
 				{
-					let buffer = currDep.buffer[key];
+					console.log("reg", key, this)
+
+					let buffer = currDep[key];
 					if(!buffer) {
 						buffer = [ currDep.key ];
-						currDep.buffer[key] = buffer;
+						currDep[key] = buffer;
 					}
 					else {
 						buffer.push(currDep.key);
@@ -593,32 +608,6 @@ var wabi =
 		}
 	},
 
-	pushDependency(key, dep) 
-	{
-		let info = this.freeDependencies.pop();
-		if(!info) {
-			info = new this.Dependency(key, dep);
-		}
-		else {
-			info.key = key;
-			info.dep = dep;
-		}
-
-		this.currDep = info;
-		this.dependencies.push(info);
-	},
-
-	popDependency() 
-	{
-		this.freeDependencies.push(this.dependencies.pop());
-		this.currDep = this.dependencies[this.dependencies.length - 1] || null;
-	},
-
-	Dependency: function(key, buffer) {
-		this.key = key;
-		this.buffer = buffer;
-	},
-
 	metadata: function(name) 
 	{
 		this.name = name;
@@ -629,6 +618,7 @@ var wabi =
 		this.elementsLinked = null;
 		this.elementsBinded = null;
 		this.events = null;
+		this.deps = null;
 	},
 
 	Watcher: function(owner, func) 
@@ -667,10 +657,6 @@ var wabi =
 
 	elementsCached: {},
 	elementDefs: {},
-
-	dependencies: [],
-	freeDependencies: [],
-	currDep: null,
 
 	fragments: {},
 	templates: {},

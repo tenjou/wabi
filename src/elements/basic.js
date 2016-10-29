@@ -158,12 +158,18 @@ wabi.element("basic",
 
 		if(this.setup) {
 			this.setup();
-		}		
+		}
+
+		if(this.render) {
+			this.html(this.render());
+		}	
 	},
 
 	prepare: null,
 
 	setup: null,
+
+	render: null,
 
 	append: function(element) {
 		element.appendTo(this);
@@ -983,26 +989,9 @@ wabi.element("basic",
 		const func = this["set_" + key];
 		if(func) 
 		{
-			const haveDepsHandled = this.deps[key];
-			if(!haveDepsHandled) 
-			{
-				let deps = this.depStates;
-				if(!deps) {
-					deps = {};
-					this.depStates = deps;
-				}
-
-				this.deps[key] = true;
-				wabi.pushDependency(key, deps);
-			}
-
 			const newValue = func.call(this, value);
 			if(newValue !== undefined) {
 				value = newValue;
-			}
-
-			if(!haveDepsHandled) {
-				wabi.popDependency();
 			}
 		}
 
@@ -1076,13 +1065,9 @@ wabi.element("basic",
 			this._$[key] = value;
 		}
 
-		const dep = this.depStates[key];
-		if(dep)
-		{
-			for(let n = 0; n < dep.length; n++) {
-				let depsKey = dep[n];
-				this._updateState(depsKey, this.$[depsKey]);
-			}
+		const deps = this._metadata.deps[key];
+		if(deps) {
+			this.html(this.render());
 		}
 	},
 
@@ -1148,26 +1133,9 @@ wabi.element("basic",
 		var func = this["set_" + key];
 		if(func) 
 		{
-			const haveDepsHandled = this.deps[key];
-			if(!haveDepsHandled) 
-			{
-				let deps = this.depStates;
-				if(!deps) {
-					deps = {};
-					this.depStates = deps;
-				}
-
-				this.deps[key] = true;
-				wabi.pushDependency(key, deps);
-			}
-
 			var newValue = func.call(this, value);
 			if(newValue !== undefined) {
 				value = newValue;
-			}
-
-			if(!haveDepsHandled) {
-				wabi.popDependency();
 			}
 		}
 
