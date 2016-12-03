@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("html", 
 {
@@ -7,8 +7,8 @@ wabi.element("html",
 		// TODO: parse by tokens
 		this.domElement.innerHTML = value;
 
-		var iter = document.createNodeIterator(this.domElement, NodeFilter.SHOW_TEXT);
-		var currNode, text, name, firstIndex, lastIndex;
+		const iter = document.createNodeIterator(this.domElement, NodeFilter.SHOW_TEXT);
+		let currNode, text, name, firstIndex, lastIndex;
 		while(currNode = iter.nextNode()) 
 		{
 			text = currNode.nodeValue; 

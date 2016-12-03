@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("content", 
 {
@@ -50,10 +50,10 @@ wabi.element("content",
 			return;
 		}
 
-		var element = wabi.createElement(state.type, this);
+		const element = wabi.createElement(state.type, this);
 		if(!element) { return; }
 
-		for(var key in state)
+		for(const key in state)
 		{
 			if(key === "type") { continue; }
 

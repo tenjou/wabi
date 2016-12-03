@@ -1,11 +1,9 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("tag",
 {
 	set_value: function(value)
 	{
-		console.log("tag", value)
-
 		if(!value) {
 			this.html("");
 		}

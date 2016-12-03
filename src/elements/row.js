@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("row", 
 {
@@ -8,16 +8,16 @@ wabi.element("row",
 		
 		if(!value) { return; }
 
-		for(var n = 0; n < value.length; n++)
+		for(const n = 0; n < value.length; n++)
 		{
-			var elementCfg = value[n];
+			const elementCfg = value[n];
 
-			var element = wabi.createElement(elementCfg.type, this);
+			const element = wabi.createElement(elementCfg.type, this);
 			if(!element) {
 				continue;
 			}
 
-			for(var key in elementCfg) 
+			for(const key in elementCfg) 
 			{
 				if(key === "type") { continue; }
 

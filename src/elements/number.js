@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("number", 
 {
@@ -44,11 +44,11 @@ wabi.element("number",
 
 	handle_keydown: function(event)
 	{
-		var domEvent = event.domEvent;
+		const domEvent = event.domEvent;
 
 		if(domEvent.ctrlKey) { return; }
 
-		var keyCode = domEvent.keyCode;
+		const keyCode = domEvent.keyCode;
 
 		// If arrows:
 		if(keyCode >= 37 && keyCode <= 40) {
@@ -60,7 +60,7 @@ wabi.element("number",
 			keyCode -= 48;
 		}
 
-		var value = domEvent.target.value;
+		const value = domEvent.target.value;
 
 		switch(keyCode)
 		{

@@ -1,40 +1,7 @@
-"use strict";
-
-"require ../wabi";
+import wabi from "../wabi";
 
 // TODO (maybe): If data or binding is removed reset value?
 // TODO: Check if child items can click through
-
-wabi.element.basic = function(parent, params)
-{
-	if(this.create) {
-		this.create(params);
-	}
-	
-	if(!this.domElement) {
-		this.domElement = document.createElement(this.tag ? this.tag : this._metadata.name);
-	}
-
-	this.domElement.holder = this;
-	this._$ = new this._metadata.stateCls();
-
-	if(parent) {
-		this.parent = parent;
-	}
-
-	// Load events:
-	var events = this._metadata.events;
-	if(events)
-	{
-		for(var n = 0; n < events.length; n++) {
-			this._addEvent(events[n]);
-		}		
-	}
-
-	if(this.prepare) {
-		this.prepare();
-	}
-};
 
 wabi.element("basic", 
 {

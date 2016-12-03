@@ -1,33 +1,38 @@
-"use strict";
 
-wabi.event = function(name, element, domEvent)
+export class ElementEvent
 {
-	this.name = name;
-	this.element = element;
-
-	if(domEvent) 
+	constructor(name, element, domEvent)
 	{
-		this.domEvent = domEvent;
+		this.name = name;
+		this.element = element;
 
-		if(domEvent.clientX) 
+		if(domEvent) 
 		{
-			this.x = domEvent.clientX;
-			this.y = domEvent.clientY;
-			this.updateElementOffset(event);
+			this.domEvent = domEvent;
+
+			if(domEvent.clientX) 
+			{
+				this.x = domEvent.clientX;
+				this.y = domEvent.clientY;
+				this.updateElementOffset(event);
+			}
+			else {
+				this.x = 0;
+				this.y = 0;
+			}
 		}
-		else {
+		else 
+		{
+			this.domEvent = null;
 			this.x = 0;
 			this.y = 0;
 		}
-	}		
-};
+	}	
 
-wabi.event.prototype = 
-{
-	updateElementOffset: function()
+	updateElementOffset()
 	{
-		var offsetLeft = 0;
-		var offsetTop = 0;
+		let offsetLeft = 0;
+		let offsetTop = 0;
 
 		if(this.element)
 		{
@@ -51,20 +56,15 @@ wabi.event.prototype =
 			this.x += rect.left;
 			this.y += rect.top;
 		}
-	},	
+	}
 
-	stop: function()
+	stop()
 	{
 		this.domEvent.preventDefault();
 		this.domEvent.stopPropagation();		
-	},
+	}
 
 	get target() {
 		return this.domEvent.target.holder;
-	},
-
-	//
-	domEvent: null,
-	x: 0,
-	y: 0
-};
+	}
+}

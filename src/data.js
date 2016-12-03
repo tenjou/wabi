@@ -1,30 +1,31 @@
-"use strict";
 
-"require wabi";
-
-if(!window.wabi) {
-	window.wabi = {};
+export class Watcher 
+{
+	constructor(owner, func) 
+	{
+		this.owner = owner ? owner : null,
+		this.func = func;
+	}
 }
 
-wabi.data = function(raw, id, parent) 
+export class Data 
 {
-	this.raw = raw ? raw : {};
+	constructor(raw, id, parent) 
+	{
+		this.watchers = null;
+		this.parent = parent || null;
+		this.refs = null;
+		this.raw = raw || {};
 
-	if(id !== undefined) {
-		this.id = id;
-	}
-	else {
-		this.id = "";
+		if(id !== undefined) {
+			this.id = id;
+		}
+		else {
+			this.id = "";
+		}
 	}
 
-	if(parent) {
-		this.parent = parent;
-	}
-};
-
-wabi.data.prototype = 
-{
-	set: function(key, value)
+	set(key, value)
 	{
 		if(value === void(0)) 
 		{
@@ -57,9 +58,9 @@ wabi.data.prototype =
 				this.performSetKey(key, value);
 			}
 		}
-	},
+	}
 
-	performSet: function(value) 
+	performSet(value) 
 	{
 		this.raw = value;
 
@@ -71,14 +72,14 @@ wabi.data.prototype =
 				info.func.call(info.owner, "set", null, value, 0, this);
 			}
 		}
-	},
+	}
 
-	performSetKey: function(key, value) 
+	performSetKey(key, value) 
 	{
 		if(typeof value === "string") 
 		{
 			if(value[0] === "*") {
-				var ref = new wabi.ref(value, key, this);
+				var ref = new Reference(value, key, this);
 				this.raw[key] = ref;
 				return ref;
 			}
@@ -87,8 +88,8 @@ wabi.data.prototype =
 		var index = key.indexOf(".");
 		if(index === -1) 
 		{
-			if(value instanceof Object && !(value instanceof wabi.data)) {
-				value = new wabi.data(value, key, this);
+			if(value instanceof Object && !(value instanceof Data)) {
+				value = new Data(value, key, this);
 			}
 
 			this.raw[key] = value;
@@ -104,7 +105,7 @@ wabi.data.prototype =
 
 				var currData = data.get(id);
 				if(!currData) {
-					currData = new wabi.data({}, id, data);
+					currData = new Data({}, id, data);
 					data[id] = currData;
 				}
 
@@ -113,8 +114,8 @@ wabi.data.prototype =
 
 			id = buffer[n];
 
-			if(value instanceof Object && !(value instanceof wabi.data)) {
-				value = new wabi.data(value, id, data);
+			if(value instanceof Object && !(value instanceof Data)) {
+				value = new Data(value, id, data);
 			}
 
 			data.raw[id] = value;
@@ -130,9 +131,9 @@ wabi.data.prototype =
 		}
 
 		return value;
-	},
+	}
 
-	setKeys: function(value)
+	setKeys(value)
 	{
 		if(wabi.dataProxy) 
 		{
@@ -146,16 +147,16 @@ wabi.data.prototype =
 		else {
 			this.performSetKeys(value);
 		}
-	},	
+	}
 
-	performSetKeys: function(value)
+	performSetKeys(value)
 	{
 		for(var key in value) {
 			this.performSetKey(key, value[key]);
 		}
-	},
+	}
 
-	add: function(key, value)
+	add(key, value)
 	{
 		if(value === void(0)) 
 		{
@@ -188,39 +189,39 @@ wabi.data.prototype =
 				this.performAddKey(key, value);
 			}
 		}
-	},
+	}
 
-	push: function(key, value)
+	push(key, value)
 	{
 		var buffer = this.get(key);
 		if(!buffer) {
-			buffer = new wabi.data([], "content", this);
+			buffer = new Data([], "content", this);
 			this.raw[key] = buffer;
 		}
 		else
 		{
 			if(!(buffer.raw instanceof Array)) {
-				console.warn("(wabi.data) Key `" + key + "` is not an Array");
+				console.warn(`(Wabi.Data.push) Key '${key}' is '${key}' not an Array`);
 				return;
 			}
 		}
 
 		buffer.add(value);
-	},
+	}
 
-	performAdd: function(value)
+	performAdd(value)
 	{
 		if(this.raw instanceof Array) 
 		{
 			if(value instanceof Object && !(value instanceof wabi.data)) {
-				value = new wabi.data(value, this.raw.length + "", this);
+				value = new Data(value, this.raw.length + "", this);
 			}
 
 			this.raw.push(value);
 		}
 		else 
 		{
-			console.warn("(wabi.data.performAdd) Can peform add only to Array");
+			console.warn("(Wabi.Data.performAdd) Can peform add only to Array");
 			return;
 		}
 
@@ -232,17 +233,17 @@ wabi.data.prototype =
 				info.func.call(info.owner, "add", null, value, -1, this);
 			}
 		}	
-	},
+	}
 
-	performAddKey: function(key, value)
+	performAddKey(key, value)
 	{
 		if(this.raw instanceof Object) 
 		{
-			if(value instanceof Object && !(value instanceof wabi.data)) {
-				value = new wabi.data(value, key, this);
+			if(value instanceof Object && !(value instanceof Data)) {
+				value = new Data(value, key, this);
 			}
 			else if(typeof value === "string" && value[0] === "*") {
-				var ref = new wabi.ref(value, key, this);
+				var ref = new Reference(value, key, this);
 				this.raw[key] = value;
 				value = ref;
 			}	
@@ -251,12 +252,12 @@ wabi.data.prototype =
 		}
 		else 
 		{
-			console.warn("(wabi.data.performAddKey) Can peform add only to Object");
+			console.warn("(Wabi.Data.performAddKey) Can peform add only to Object");
 			return;
 		}	
 
 		if(typeof value === "string" && value[0] === "*") {
-			var ref = new wabi.ref(value, key, this);
+			var ref = new Reference(value, key, this);
 			this.raw[key] = value;
 			value = ref;
 		}	
@@ -269,9 +270,9 @@ wabi.data.prototype =
 				info.func.call(info.owner, "add", key, value, -1, this);
 			}
 		}
-	},
+	}
 
-	remove: function(key)
+	remove(key)
 	{
 		// Remove self?
 		if(key === undefined) {
@@ -292,14 +293,14 @@ wabi.data.prototype =
 				this.performRemove(key);
 			}
 		}
-	},
+	}
 
-	performRemove: function(key)
+	performRemove(key)
 	{
 		var value = this.raw[key];
 		delete this.raw[key];
 
-		if(value instanceof wabi.data)
+		if(value instanceof Data)
 		{
 			var refs = value.refs;
 			if(refs)
@@ -311,7 +312,7 @@ wabi.data.prototype =
 				value.refs = null;
 			}
 		}
-		else if(value instanceof wabi.ref) {
+		else if(value instanceof Reference) {
 			value = value.instance;
 		}
 
@@ -323,9 +324,9 @@ wabi.data.prototype =
 				info.func.call(info.owner, "remove", key, value, -1, this);
 			}
 		}	
-	},
+	}
 
-	removeItem: function(key, id)
+	removeItem(key, id)
 	{
 		var item = this.raw[key];
 		if(typeof(item) !== "object") {
@@ -347,12 +348,12 @@ wabi.data.prototype =
 				info.func.call(info.owner, "removeItem", key, null, id, this);
 			}
 		}
-	},
+	}
 
-	get: function(index) 
+	get(index) 
 	{
 		if(index === "*") {
-			return new wabi.data(this.raw, this.id, this.parent);
+			return new Data(this.raw, this.id, this.parent);
 		}
 		else if(index === "@") {
 			return this.id;
@@ -363,8 +364,8 @@ wabi.data.prototype =
 		{
 			data = this.raw[index | 0];
 
-			if(typeof(data) === "object" && !(data instanceof wabi.data)) {
-				data = new wabi.data(data, index + "", this);
+			if(typeof(data) === "object" && !(data instanceof Data)) {
+				data = new Data(data, index + "", this);
 				this.raw[index] = data;
 			}
 		}
@@ -377,12 +378,12 @@ wabi.data.prototype =
 
 				if(data)
 				{
-					if(typeof data === "object" && !(data instanceof wabi.data)) {
-						data = new wabi.data(data, index + "", this);
+					if(typeof data === "object" && !(data instanceof Data)) {
+						data = new Data(data, index + "", this);
 						this.raw[index] = data;
 					}
 					else if(typeof data === "string" && data[0] === "*") {
-						data = new wabi.ref(data, index, this);
+						data = new Reference(data, index, this);
 						this.raw[index] = data;
 						return data;
 					}
@@ -400,12 +401,12 @@ wabi.data.prototype =
 		}
 
 		return data;
-	},
+	}
 
-	getItem: function(id)
+	getItem(id)
 	{
 		if(id === "*") {
-			return new wabi.data(this.raw, this.id, this.parent);
+			return new Data(this.raw, this.id, this.parent);
 		}
 
 		var data;
@@ -423,15 +424,15 @@ wabi.data.prototype =
 			}
 		}
 
-		if(typeof(data) === "object" && !(data instanceof wabi.data)) {
-			data = new wabi.data(data, id + "", this);
+		if(typeof(data) === "object" && !(data instanceof Data)) {
+			data = new Data(data, id + "", this);
 			this.raw[id] = data;
 		}
 
 		return data;
-	},
+	}
 
-	getFromKeys: function(keys)
+	getFromKeys(keys)
 	{
 		var data = this;
 		for(var n = 0; n < keys.length; n++) 
@@ -443,9 +444,9 @@ wabi.data.prototype =
 		}
 
 		return data;
-	},
+	}
 
-	genId: function()
+	genId()
 	{
 		if(!this.parent) { return this.id; }
 
@@ -460,28 +461,28 @@ wabi.data.prototype =
 		} while(parent);
 
 		return id;
-	},
+	}
 
-	watch: function(func, owner) 
+	watch(func, owner) 
 	{
 		if(!func) {
-			console.warn("(wabi.data.watch) Invalid callback function passed");
+			console.warn("(Wabi.Data.watch) Invalid callback function passed");
 			return;
 		}
 		if(!owner) {
-			console.warn("(wabi.data.watch) Invalid owner passed");
+			console.warn("(Wabi.Data.watch) Invalid owner passed");
 			return;
 		}
 
 		if(this.watchers) {
-			this.watchers.push(new this.Watcher(owner, func));
+			this.watchers.push(new Watcher(owner, func));
 		}
 		else {
-			this.watchers = [ new this.Watcher(owner, func) ];
+			this.watchers = [ new Watcher(owner, func) ];
 		}
-	},
+	}
 
-	unwatch: function(func, owner)
+	unwatch(func, owner)
 	{
 		if(!this.watchers) { return; }
 
@@ -495,9 +496,9 @@ wabi.data.prototype =
 				return;
 			}
 		}
-	},
+	}
 
-	sync: function() 
+	sync() 
 	{
 		if(this.watchers) 
 		{
@@ -506,9 +507,9 @@ wabi.data.prototype =
 				info.func.call(info.owner, "sync", null, null, 0, this);
 			}
 		}	
-	},
+	}
 
-	__syncAsArray: function(data)
+	__syncAsArray(data)
 	{
 		this.raw = data;
 
@@ -519,9 +520,9 @@ wabi.data.prototype =
 				info.func.call(info.owner, "set", null, data, 0, this);
 			}
 		}	
-	},
+	}
 
-	__syncAsObject: function(data)
+	__syncAsObject(data)
 	{
 		this.raw = {};
 
@@ -545,73 +546,62 @@ wabi.data.prototype =
 				}
 			}
 		}
-	},
+	}
 
-	removeRef: function(ref)
+	removeRef(ref)
 	{
 		if(!this.refs) { 
-			console.warn("(wabi.data.removeRef) No references created from this item");
+			console.warn("(Wabi.Data.removeRef) No references created from this item");
 			return;
 		}
 
 		var index = this.refs.indexOf(ref);
 		this.refs[index] = this.refs[this.refs.length - 1];
 		this.refs.pop();
-	},
+	}
 
-	toJSON: function() {
+	toJSON() {
 		return this.raw;
-	},
+	}
+}
 
-	Watcher: function(owner, func) 
-	{
-		this.owner = owner ? owner : null,
-		this.func = func;
-	},
-
-	//
-	watchers: null,
-	parent: null,
-	refs: null
-};
-
-wabi.ref = function(path, id, parent) 
+class Reference
 {
-	this.id = id;
-	this.path = path;
-	this.parent = parent;
-
-	var refPath = path.slice(1);
-	this.instance = wabi.globalData.raw.assets.get(refPath);
-
-	if(this.instance)
+	constructor(path, id, parent) 
 	{
-		if(this.instance.refs) {
-			this.instance.refs.push(this);
+		this.id = id;
+		this.path = path;
+		this.parent = parent;
+
+		var refPath = path.slice(1);
+		this.instance = wabi.globalData.raw.assets.get(refPath);
+
+		if(this.instance)
+		{
+			if(this.instance.refs) {
+				this.instance.refs.push(this);
+			}
+			else {
+				this.instance.refs = [ this ];
+			}
 		}
 		else {
-			this.instance.refs = [ this ];
+			console.warn("(Wabi.Reference) Invalid path for reference: " + refPath);
 		}
 	}
-	else {
-		console.warn("(wabi.ref) Invalid ref: " + refPath);
-	}
-};
 
-wabi.ref.prototype = 
-{
-	remove: function()
+	remove()
 	{
 		this.instance.removeRef(this);
 		this.instance = null;
 		this.parent.remove(this.id);
-	},
+	}
 
-	$remove: function() {
+	$remove() {
 		this.parent.remove(this.id);
-	},
+	}
 
-	toJSON: function() {
+	toJSON() {
 		return this.path;
 	}
-};
+}

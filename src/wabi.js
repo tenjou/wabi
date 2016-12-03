@@ -1,664 +1,673 @@
-"use strict";
+import { Data, Watcher } from "./data";
+import { ElementEvent } from "./event";
 
-var wabi = 
+export { Data, Watcher, ElementEvent };
+
+const globalData = {};
+const elementsCached = {};
+const elementDefs = {};
+const fragments = {};
+const templates = {};
+const listeners = {};
+
+function ElementMetadata(name) 
 {
-	addTemplate: function(id, extend, props)
+	this.name = name;
+	this.states = null;
+	this.stateCls = null;
+	this.statesLinked = null;
+	this.elements = null;
+	this.elementsLinked = null;
+	this.elementsBinded = null;
+	this.events = null;
+	this.deps = null;
+}
+
+function Fragment(id, extend, props)
+{
+	this.id = id;
+	this.props = props;
+
+	if(extend) 
 	{
-		if(!id) {
-			console.warn("(wabi.addTemplate) Invalid template id passed");
-			return false;
-		}
-
-		if(typeof(extend) === "object") {
-			props = extend;
-			extend = null;
-		}
-
-		if(!props.type) {
-			console.warn("(wabi.addTemplate) Invalid template type passed");
-			return false;
-		}		
-
-		if(this.templates[id]) {
-			console.warn("(wabi.addTemplate) There is already added template with such id: " + props.id);
-			return false;
-		}
-
-		this.templates[id] = props;
-
-		return true;
-	},
-
-	createTemplate: function(id)
-	{
-		var props = this.templates[id];
-		if(!props) {
-			console.warn("(wabi.createTemplate) Template not found: " + id);
-			return null;
-		}
-
-		var template = wabi.createElement(props.type);
-		template.flags |= template.Flag.REGION;
-
-		for(var key in props) 
-		{
-			if(key === "type") { continue; }
-			
-			template[key] = props[key];
-		}
-
-		return template;
-	},
-
-	createData: function(data) {
-		return new wabi.data(data || {});
-	},	
-
-	addFragment: function(id, extend, props)
-	{
-		if(!id) {
-			console.warn("(wabi.addFragment) Invalid fragment id passed");
-			return false;
-		}	
-
-		if(this.fragments[id]) {
-			console.warn("(wabi.addFragment) There is already added fragment with such id: " + id);
-			return false;
-		}
-
-		if(!props) {
-			props = extend;
-			extend = null;
-		}
-
-		this.fragments[id] = new this.Fragment(id, extend, props);
-
-		return true;
-	},
-
-	getFragment: function(id) 
-	{
-		var fragment = this.fragments[id];
-		if(!fragment) {
-			console.warn("(wabi.getTemplate) Could not find fragment with id: " + id);
-			return null;
-		}
-
-		if(fragment.extend) 
-		{
-			var props = this.extendFragment([], fragment.extend);
-			props = this.appendProps(props, fragment.props);
-			return props;
-		}
-
-		return fragment.props;
-	},
-
-	extendFragment: function(props, extend)
-	{
-		for(var n = 0; n < extend.length; n++)
-		{
-			var fragment = this.fragments[extend[n]];
-			if(!fragment) {
-				console.warn("(wabi.extendFragment) Could not find fragment with id: " + fragment.id);
-				continue;
-			}
-			else 
-			{
-				if(fragment.extend) {
-					props = this.extendFragment(props, fragment.extend);
-				}
-
-				props = this.appendProps(props, fragment.props);
-			}
-		}
-
-		return props;
-	},
-
-	appendProps: function(props, fragmentProps)
-	{
-		if(fragmentProps instanceof Array) {
-			props = props.concat(fragmentProps);
+		if(typeof(extend) === "string") {
+			this.extend = [ extend ];
 		}
 		else {
-			props.push(fragmentProps);
+			this.extend = extend;
 		}
+	}
+	else {
+		this.extend = null
+	}
+}
+
+function ElementDef(props, extend)
+{
+	this.props = props;
+	this.extend = extend;
+}
+
+export function addTemplate(id, extend, props)
+{
+	if(!id) {
+		console.warn("(Wabi.addTemplate) Invalid template id passed");
+		return false;
+	}
+
+	if(typeof(extend) === "object") {
+		props = extend;
+		extend = null;
+	}
+
+	if(!props.type) {
+		console.warn("(Wabi.addTemplate) Invalid template type passed");
+		return false;
+	}		
+
+	if(this.templates[id]) {
+		console.warn("(Wabi.addTemplate) There is already added template with such id: " + props.id);
+		return false;
+	}
+
+	this.templates[id] = props;
+
+	return true;
+}
+
+export function createTemplate(id)
+{
+	const props = this.templates[id];
+	if(!props) {
+		console.warn("(Wabi.createTemplate) Template not found: " + id);
+		return null;
+	}
+
+	const template = createElement(props.type);
+	template.flags |= template.Flag.REGION;
+
+	for(const key in props) 
+	{
+		if(key === "type") { continue; }
 		
+		template[key] = props[key];
+	}
+
+	return template;
+}
+
+export function createData(data) {
+	return new Data(data || {});
+}
+
+export function addFragment(id, extend, props)
+{
+	if(!id) {
+		console.warn("(Wabi.addFragment) Invalid fragment id passed");
+		return false;
+	}	
+
+	if(this.fragments[id]) {
+		console.warn("(Wabi.addFragment) There is already added fragment with such id: " + id);
+		return false;
+	}
+
+	if(!props) {
+		props = extend;
+		extend = null;
+	}
+
+	this.fragments[id] = new Fragment(id, extend, props);
+
+	return true;
+}
+
+export function getFragment(id) 
+{
+	const fragment = this.fragments[id];
+	if(!fragment) {
+		console.warn("(Wabi.getTemplate) Could not find fragment with id: " + id);
+		return null;
+	}
+
+	if(fragment.extend) 
+	{
+		const props = this.extendFragment([], fragment.extend);
+		props = this.appendProps(props, fragment.props);
 		return props;
-	},
+	}
 
-	createElement: function(name, parent, params)
+	return fragment.props;
+}
+
+function extendFragment(props, extend)
+{
+	for(let n = 0; n < extend.length; n++)
 	{
-		var element;
-		var buffer = this.elementsCached[name];
-		if(buffer && buffer.length > 0) 
-		{
-			element = buffer.pop();
-			if(element) 
-			{
-				element.flags = element.flagsInitial;
-
-				if(parent) {
-					element.parent = parent;
-				}
-			}
+		const fragment = fragments[extend[n]];
+		if(!fragment) {
+			console.warn("(Wabi.extendFragment) Could not find fragment with id: " + fragment.id);
+			continue;
 		}
 		else 
 		{
-			var cls = this.element[name];
-			if(!cls) {			
-				console.warn("(editor.createElement) No such element found: " + name);
-				return null;
+			if(fragment.extend) {
+				props = extendFragment(props, fragment.extend);
 			}
 
-			element = new this.element[name](parent, params);
+			props = appendProps(props, fragment.props);
 		}
+	}
 
-		element._setup();
+	return props;
+}
 
-		return element;
-	},
+function appendProps(props, fragmentProps)
+{
+	if(fragmentProps instanceof Array) {
+		props = props.concat(fragmentProps);
+	}
+	else {
+		props.push(fragmentProps);
+	}
+	
+	return props;
+}
 
-	removeElement: function(element)
+export function createElement(name, parent, params)
+{
+	let element;
+
+	const buffer = elementsCached[name];
+	if(buffer && buffer.length > 0) 
 	{
-		if(!element || !(element instanceof wabi.element.basic)) {
-			return console.warn("(wabi.removeElement) Invalid element passed");
-		}
+		element = buffer.pop();
+		if(element) 
+		{
+			element.flags = element.flagsInitial;
 
-		element._remove();
-
-		var buffer = this.elementsCached[element._metadata.name];
-		if(!buffer) {
-			buffer = [ element ];
-			this.elementsCached[element._metadata.name] = buffer;
+			if(parent) {
+				element.parent = parent;
+			}
 		}
-		else {
-			buffer.push(element);
-		}
-	},
-
-	on: function(name, func, owner)
+	}
+	else 
 	{
-		if(!func) {
-			console.warn("(wabi.on) Invalid callback function passed");
+		const cls = WabiElement[name];
+		if(!cls) {			
+			console.warn("(Wabi.createElement) No such element found: " + name);
+			return null;
+		}
+
+		element = new WabiElement[name](parent, params);
+	}
+
+	element._setup();
+
+	return element;
+}
+
+export function removeElement(element)
+{
+	if(!element || !(element instanceof WabiElement.basic)) {
+		return console.warn("(Wabi.removeElement) Invalid element passed");
+	}
+
+	element._remove();
+
+	let buffer = elementsCached[element._metadata.name];
+	if(!buffer) {
+		buffer = [ element ];
+		elementsCached[element._metadata.name] = buffer;
+	}
+	else {
+		buffer.push(element);
+	}
+}
+
+export function on(name, func, owner)
+{
+	if(!func) {
+		console.warn("(Wabi.on) Invalid callback function passed");
+		return;
+	}
+
+	let buffer = listeners[name];
+	if(!buffer) 
+	{
+		const eventName = "on" + name;
+		if(window[eventName] === void(0)) { 
+			console.warn("(Wabi.on) No such global event available: " + name);
 			return;
 		}
 
-		var buffer = this.listeners[name];
-		if(!buffer) 
+		buffer = [ new Watcher(owner, func) ];
+		listeners[name] = buffer;
+
+		window[eventName] = function(domEvent) 
 		{
-			var eventName = "on" + name;
-			if(window[eventName] === void(0)) { 
-				console.warn("(wabi.on) No such global event available: " + name);
-				return;
-			}
-
-			buffer = [ new this.Watcher(owner, func) ];
-			this.listeners[name] = buffer;
-
-			window[eventName] = function(domEvent) 
-			{
-				var event = new wabi.event(name, null, domEvent);
-				for(var n = 0; n < buffer.length; n++) {
-					var watcher = buffer[n];
-					watcher.func.call(watcher.owner, event);
-				}
+			var event = new ElementEvent(name, null, domEvent);
+			for(var n = 0; n < buffer.length; n++) {
+				var watcher = buffer[n];
+				watcher.func.call(watcher.owner, event);
 			}
 		}
-		else 
-		{
-			buffer.push(new this.Watcher(owner, func));
-		}
-	},
-
-	off: function(name, func, owner)
+	}
+	else 
 	{
-		if(!func) {
-			return console.warn("(wabi.on) Invalid callback function passed");
-		}
+		buffer.push(new Watcher(owner, func));
+	}
+}
 
-		var buffer = this.listeners[name];
-		if(!buffer) {
-			return console.warn("(wabi.off) No listeners found for event: " + name);
-		}
+export function off(name, func, owner)
+{
+	if(!func) {
+		return console.warn("(Wabi.on) Invalid callback function passed");
+	}
 
-		var num = buffer.length;
-		for(var n = 0; n < num; n++)
-		{
-			var listener = buffer[n];
-			if(listener.func === func && listener.owner === owner)
-			{
-				buffer[n] = buffer[num - 1];
-				buffer.pop();
-				break;
-			}
-		}
-	},
+	const buffer = listeners[name];
+	if(!buffer) {
+		return console.warn("(Wabi.off) No listeners found for event: " + name);
+	}
 
-	element: function(name, extend, props) 
+	const num = buffer.length;
+	for(let n = 0; n < num; n++)
 	{
-		if(props === undefined) {
-			props = extend;
-			extend = null;
+		const listener = buffer[n];
+		if(listener.func === func && listener.owner === owner)
+		{
+			buffer[n] = buffer[num - 1];
+			buffer.pop();
+			break;
 		}
+	}
+}
 
-		if(this.elementDefs[name]) {
-			console.warn("(wabi.element) There is already defined element with such name: " + name);
+export function element(name, extend, props) 
+{
+	if(props === undefined) {
+		props = extend;
+		extend = null;
+	}
+
+	if(elementDefs[name]) {
+		console.warn("(Wabi.element) There is already defined element with such name: " + name);
+		return;
+	}
+
+	const elementDef = new ElementDef(props, extend);
+	elementDefs[name] = elementDef;
+
+	if(name === "basic") {
+		compileBasicElement(props, extend);
+	}
+	else {
+		compileElement(name, props, extend);
+	}
+}
+
+const WabiElement = element;
+
+function genPrototype(name, extend, props)
+{
+	if(extend) 
+	{
+		const extendedDef = elementDefs[extend];
+		if(!extendedDef) {
+			console.warn("(Wabi.genPrototype) Extended class not found: " + extend);
 			return;
 		}
 
-		var elementDef = new this.ElementDef(props, extend);
-		this.elementDefs[name] = elementDef;
+		const newProps = {};
+		assignObj(newProps, extendedDef.props);
+		assignObj(newProps, props);
+		props = newProps;
+	}		
 
-		if(name === "basic") {
-			this.compileBasicElement(props, extend);
-		}
-		else {
-			this.compileElement(name, props, extend);
-		}
-	},	
+	const states = {};
+	const statesLinked = {};
+	const elementsLinked = {};
+	const elementsBinded = {};
+	const elements = {};
+	const events = [];
+	const proto = {};
+	const deps = {};
+	let numElements = 0;
+	let valueLinked = false;
 
-	// TODO: Re-do how properties are registered.
-	genPrototype: function(name, extend, props)
+	if(props.elements) 
 	{
-		if(extend) 
+		const elementsProps = props.elements;
+		for(let elementKey in elementsProps)
 		{
-			var extendedDef = this.elementDefs[extend];
-			if(!extendedDef) {
-				console.warn("(wabi.genPrototype) Extended class not found: " + extend);
-				return;
+			const elementSlotId = elementKey;
+			const item = elementsProps[elementSlotId];
+			const state = {};
+			const watch = {};
+			const params = {};
+
+			let link = null;
+			let type = null;
+			let bind = null;
+
+			if(!item) {}
+			else if(typeof item === "string") {
+				type = item;
 			}
-
-			var newProps = {};
-			this.assignObj(newProps, extendedDef.props);
-			this.assignObj(newProps, props);
-			props = newProps;
-		}		
-
-		let states = {};
-		let statesLinked = {};
-		let elementsLinked = {};
-		let elementsBinded = {};
-		let elements = {};
-		let events = [];
-		let proto = {};
-		let deps = {};
-		let numElements = 0;
-		let valueLinked = false;
-
-		if(props.elements) 
-		{
-			const elementsProps = props.elements;
-			for(let elementKey in elementsProps)
+			else
 			{
-				var elementSlotId = elementKey;
-				var item = elementsProps[elementSlotId];
-				var state = {};
-				var watch = {};
-				var params = {};
+				if(item.type) { type = item.type; }
+				if(item.link) { link = item.link; }
+				if(item.bind) { bind = item.bind; }
 
-				var link = null;
-				var type = null;
-				var bind = null;
+				const watchKeyword = "watch_";
+				const watchKeywordLength = watchKeyword.length;
 
-				if(!item) {}
-				else if(typeof item === "string") {
-					type = item;
-				}
-				else
+				for(const key in item)
 				{
-					if(item.type) { type = item.type; }
-					if(item.link) { link = item.link; }
-					if(item.bind) { bind = item.bind; }
+					if(key === "type" || key === "link" || key === "bind") { continue; }
 
-					var watchKeyword = "watch_";
-					var watchKeywordLength = watchKeyword.length;
-
-					for(var key in item)
-					{
-						if(key === "type" || key === "link" || key === "bind") { continue; }
-
-						if(key[0] === "$") {
-							state[key.slice(1)] = item[key];
-						}
-						else if(key.indexOf(watchKeyword) > -1) {
-							watch[key.slice(watchKeywordLength)] = item[key];
-						}
-						else {
-							params[key] = item[key];
-						}
+					if(key[0] === "$") {
+						state[key.slice(1)] = item[key];
 					}
-				}
-
-				var newItem = { 
-					type: type,
-					link: link,
-					slot: numElements++,
-					state: state,
-					watch: watch,
-					params: params
-				};
-
-				if(link)
-				{
-					statesLinked[link] = elementKey;
-					elementsLinked[elementKey] = link;
-				}
-
-				if(bind) {
-					elementsBinded[elementKey] = bind;
-				}
-
-				elements[elementSlotId] = newItem;
-			}
-
-			delete props.elements;
-		}
-
-		// Defines states:
-		var statesDefined = props.state;
-		var statesInitial = statesDefined;
-		if(statesDefined)
-		{
-			for(var key in statesDefined) {
-				states[key] = statesDefined[key];
-			}
-		}
-
-		// Define properties:
-		for(var key in props)
-		{
-			var p = Object.getOwnPropertyDescriptor(props, key);
-			if(p.get || p.set) {
-				Object.defineProperty(proto, key, p);
-				continue;
-			}
-
-			var variable = props[key];
-			var variableType = typeof(variable);
-
-			if(variableType === "function")
-			{
-				var buffer = key.split("_");
-				if(buffer.length > 1 && buffer[0] !== "")
-				{
-					var stateName = buffer[1];
-
-					if(buffer[0] !== "handle") 
-					{
-						if(states[stateName] === undefined) {
-							states[stateName] = null;
-						}
+					else if(key.indexOf(watchKeyword) > -1) {
+						watch[key.slice(watchKeywordLength)] = item[key];
 					}
 					else {
-						events.push(stateName);
+						params[key] = item[key];
 					}
 				}
 			}
 
-			proto[key] = variable;
-		}
+			const newItem = { 
+				type: type,
+				link: link,
+				slot: numElements++,
+				state: state,
+				watch: watch,
+				params: params
+			};
 
-		var statesProto;
-
-		if(name !== "basic")
-		{
-			var basicMetadata = this.element.basic.prototype._metadata;
-			var basicStates = basicMetadata.states;
-
-			statesProto = Object.assign({}, basicStates);
-			statesProto = Object.assign(statesProto, states);
-		}
-		else 
-		{
-			statesProto = states;			
-		}
-
-		if(proto.render) 
-		{
-			const reg = /this\.\$([a-zA-Z]*)/g;
-			let result = reg.exec(proto.render);
-			while(result) 
+			if(link)
 			{
-				deps[result[1]] = true;
-				result = reg.exec(proto.render);
-			} while(result);
+				statesLinked[link] = elementKey;
+				elementsLinked[elementKey] = link;
+			}
+
+			if(bind) {
+				elementsBinded[elementKey] = bind;
+			}
+
+			elements[elementSlotId] = newItem;
 		}
 
-		var bindsForElement = {};
-		for(var key in elementsBinded) {
-			bindsForElement[elementsBinded[key]] = key; 
-		}
+		delete props.elements;
+	}
 
-		// Create metadata:
-		var metadata = new this.metadata(name);
-		metadata.states = statesProto;
-		metadata.statesLinked = statesLinked;
-		metadata.statesInitial = statesInitial;
-		metadata.elementsLinked = elementsLinked;
-		metadata.elementsBinded = elementsBinded;
-		metadata.bindsForElement = bindsForElement;
-		metadata.deps = deps;
-
-		if(numElements > 0) {
-			metadata.elements = elements;
-		}
-		if(events.length > 0) {
-			metadata.events = events;
-		}
-
-		proto._metadata = metadata;
-		return proto;
-	},
-
-	compileBasicElement: function(props, extend)
+	// Defines states:
+	const statesDefined = props.state;
+	const statesInitial = statesDefined;
+	if(statesDefined)
 	{
-		var proto = this.genPrototype("basic", extend, props);
+		for(const key in statesDefined) {
+			states[key] = statesDefined[key];
+		}
+	}
 
-		proto.flagsInitial = (proto.Flag.ENABLED);
-		proto.flags = proto.flagsInitial;
-
-		this.element.basic.prototype = proto;
-	},	
-
-	compileElement: function(name, props, extend)
+	// Define properties:
+	for(const key in props)
 	{
-		function element(parent, params) {
-			wabi.element.basic.call(this, parent, params);
-		};
-
-		var elementProto = this.genPrototype(name, extend, props);
-
-		element.prototype = Object.create(this.element.basic.prototype);
-		element.prototype.constructor = element;
-		var proto = element.prototype;
-
-		for(var key in elementProto)
-		{
-			var p = Object.getOwnPropertyDescriptor(elementProto, key);
-			if(p.get || p.set) {
-				Object.defineProperty(proto, key, p);
-				continue;
-			}
-
-			proto[key] = elementProto[key];
+		const p = Object.getOwnPropertyDescriptor(props, key);
+		if(p.get || p.set) {
+			Object.defineProperty(proto, key, p);
+			continue;
 		}
 
-		proto.deps = {};
-		proto.depStates = {};
+		const variable = props[key];
+		const variableType = typeof(variable);
 
-		// Generate setters:
-		var metadata = elementProto._metadata;
-		var statesLinked = metadata.statesLinked;
-		var states = metadata.states;
-		var statesProto = {};
-
-		for(var key in statesLinked) 
+		if(variableType === "function")
 		{
-			if(!states[key]) {
-				states[key] = undefined;
-			}
-		}
-
-		for(var key in states) 
-		{
-			var stateValue = states[key];
-			var stateValueType = typeof stateValue;
-
-			var link = statesLinked[key];
-			if(link) {
-				statesProto[key] = null;
-				this.defStateLink(proto, key, link);
-			}
-			else 
+			const buffer = key.split("_");
+			if(buffer.length > 1 && buffer[0] !== "")
 			{
-				switch(stateValueType)
+				const stateName = buffer[1];
+
+				if(buffer[0] !== "handle") 
 				{
-					case "string":
-					case "object":
-						statesProto[key] = null;
-						break;
-
-					case "number":
-						statesProto[key] = 0;
-						break;
-
-					case "boolean":
-						statesProto[key] = false;
-						break;
-
-					default:
-						console.warn("(wabi.compileElement) Unhandled stateValueType `" + stateValueType + "` for element: " + name);
-						statesProto[key] = null;
-						break;
-				}
-
-				this.defState(proto, key);
-			}
-		}
-
-		function state() {};
-		state.prototype = statesProto;
-		metadata.stateCls = state;
-
-		this.element[name] = element;
-	},
-
-	defState: function(proto, key)
-	{
-		Object.defineProperty(proto, "$" + key, 
-		{
-			set: function(value) {
-				this._updateState(key, value);
-			},
-			get: function() 
-			{
-				let currDep = wabi.currDep;
-				if(currDep) 
-				{
-					console.log("reg", key, this)
-
-					let buffer = currDep[key];
-					if(!buffer) {
-						buffer = [ currDep.key ];
-						currDep[key] = buffer;
+					if(states[stateName] === undefined) {
+						states[stateName] = null;
 					}
-					else {
-						buffer.push(currDep.key);
-					}
-				}
-
-				return this._$[key];
-			}
-		});	
-	},
-
-	defStateLink: function(proto, key, link)
-	{
-		Object.defineProperty(proto, "$" + key, 
-		{
-			set: function(value) 
-			{
-				var element = this.elements[link];
-				if(element) {
-					element.$value = value;
 				}
 				else {
-					this._updateState(key, value);
+					events.push(stateName);
 				}
-			},
-			get: function() {
-				return this.elements[link].$value;
 			}
-		});	
-	},
-
-	assignObj: function(target, src)
-	{
-		for(var key in src) 
-		{
-			var prop = Object.getOwnPropertyDescriptor(src, key);
-			if(prop.get || prop.set) {
-				Object.defineProperty(target, key, prop);
-				continue;
-			}
-
-			target[key] = src[key];
 		}
-	},
 
-	metadata: function(name) 
+		proto[key] = variable;
+	}
+	
+	let statesProto;
+
+	if(name !== "basic")
 	{
-		this.name = name;
-		this.states = null;
-		this.stateCls = null;
-		this.statesLinked = null;
-		this.elements = null;
-		this.elementsLinked = null;
-		this.elementsBinded = null;
-		this.events = null;
-		this.deps = null;
-	},
+		const basicMetadata = WabiElement.basic.prototype._metadata;
+		const basicStates = basicMetadata.states;
 
-	Watcher: function(owner, func) 
+		statesProto = Object.assign({}, basicStates);
+		statesProto = Object.assign(statesProto, states);
+	}
+	else 
 	{
-		this.owner = owner ? owner : null,
-		this.func = func;
-	},
+		statesProto = states;			
+	}
 
-	Fragment: function(id, extend, props)
+	if(proto.render) 
 	{
-		this.id = id;
-		this.props = props;
-
-		if(extend) 
+		const reg = /this\.\$([a-zA-Z]*)/g;
+		let result = reg.exec(proto.render);
+		while(result) 
 		{
-			if(typeof(extend) === "string") {
-				this.extend = [ extend ];
+			deps[result[1]] = true;
+			result = reg.exec(proto.render);
+		}
+	}
+
+	const bindsForElement = {};
+	for(let key in elementsBinded) {
+		bindsForElement[elementsBinded[key]] = key; 
+	}
+
+	// Create metadata:
+	const metadata = new ElementMetadata(name);
+	metadata.states = statesProto;
+	metadata.statesLinked = statesLinked;
+	metadata.statesInitial = statesInitial;
+	metadata.elementsLinked = elementsLinked;
+	metadata.elementsBinded = elementsBinded;
+	metadata.bindsForElement = bindsForElement;
+	metadata.deps = deps;
+
+	if(numElements > 0) {
+		metadata.elements = elements;
+	}
+	if(events.length > 0) {
+		metadata.events = events;
+	}
+
+	proto._metadata = metadata;
+	return proto;
+}
+
+function compileBasicElement(props, extend)
+{
+	const proto = genPrototype("basic", extend, props);
+
+	proto.flagsInitial = (proto.Flag.ENABLED);
+	proto.flags = proto.flagsInitial;
+
+	WabiElement.basic.prototype = proto;
+}
+
+function compileElement(name, props, extend)
+{
+	function element(parent, params) {
+		WabiElement.basic.call(this, parent, params);
+	};
+
+	const elementProto = genPrototype(name, extend, props);
+
+	element.prototype = Object.create(WabiElement.basic.prototype);
+	element.prototype.constructor = element;
+
+	const proto = element.prototype;
+
+	for(const key in elementProto)
+	{
+		const p = Object.getOwnPropertyDescriptor(elementProto, key);
+		if(p.get || p.set) {
+			Object.defineProperty(proto, key, p);
+			continue;
+		}
+
+		proto[key] = elementProto[key];
+	}
+
+	proto.deps = {};
+	proto.depStates = {};
+
+	// Generate setters:
+	const metadata = elementProto._metadata;
+	const statesLinked = metadata.statesLinked;
+	const states = metadata.states;
+	const statesProto = {};
+
+	for(const key in statesLinked) 
+	{
+		if(!states[key]) {
+			states[key] = undefined;
+		}
+	}
+
+	for(const key in states) 
+	{
+		const stateValue = states[key];
+		const stateValueType = typeof stateValue;
+
+		const link = statesLinked[key];
+		if(link) {
+			statesProto[key] = null;
+			defStateLink(proto, key, link);
+		}
+		else 
+		{
+			switch(stateValueType)
+			{
+				case "string":
+				case "object":
+					statesProto[key] = null;
+					break;
+
+				case "number":
+					statesProto[key] = 0;
+					break;
+
+				case "boolean":
+					statesProto[key] = false;
+					break;
+
+				default:
+					console.warn("(Wabi.compileElement) Unhandled stateValueType `" + stateValueType + "` for element: " + name);
+					statesProto[key] = null;
+					break;
+			}
+
+			defState(proto, key);
+		}
+	}
+
+	function state() {};
+	state.prototype = statesProto;
+	metadata.stateCls = state;
+
+	WabiElement[name] = element;
+}
+
+function defState(proto, key)
+{
+	Object.defineProperty(proto, "$" + key, 
+	{
+		set: function(value) {
+			this._updateState(key, value);
+		},
+		get: function() {
+			return this._$[key];
+		}
+	});	
+}
+
+function defStateLink(proto, key, link)
+{
+	Object.defineProperty(proto, "$" + key, 
+	{
+		set: function(value) 
+		{
+			const element = this.elements[link];
+			if(element) {
+				element.$value = value;
 			}
 			else {
-				this.extend = extend;
+				this._updateState(key, value);
 			}
+		},
+		get: function() {
+			return this.elements[link].$value;
 		}
-		else {
-			this.extend = null
-		}
-	},
+	});	
+}
 
-	ElementDef: function(props, extend)
+function assignObj(target, src)
+{
+	for(const key in src) 
 	{
-		this.props = props;
-		this.extend = extend;
-	},
+		const prop = Object.getOwnPropertyDescriptor(src, key);
+		if(prop.get || prop.set) {
+			Object.defineProperty(target, key, prop);
+			continue;
+		}
 
-	//
-	globalData: {},
+		target[key] = src[key];
+	}
+}
 
-	elementsCached: {},
-	elementDefs: {},
+WabiElement.basic = function(parent, params)
+{
+	if(this.create) {
+		this.create(params);
+	}
+	
+	if(!this.domElement) {
+		this.domElement = document.createElement(this.tag ? this.tag : this._metadata.name);
+	}
 
-	fragments: {},
-	templates: {},
-	listeners: {}
+	this.domElement.holder = this;
+	this._$ = new this._metadata.stateCls();
+
+	if(parent) {
+		this.parent = parent;
+	}
+
+	// Load events:
+	const events = this._metadata.events;
+	if(events)
+	{
+		for(let n = 0; n < events.length; n++) {
+			this._addEvent(events[n]);
+		}		
+	}
+
+	if(this.prepare) {
+		this.prepare();
+	}
 };

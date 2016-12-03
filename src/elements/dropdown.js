@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("dropdown",
 {
@@ -76,7 +76,7 @@ wabi.element("dropdown",
 	{
 		event.stop();
 
-		var list = this.elements.list;
+		const list = this.elements.list;
 		list.removeAll();
 
 		if(!this._dataset) { return; }
@@ -87,15 +87,15 @@ wabi.element("dropdown",
 
 	genDataBuffer: function()
 	{
-		var buffer = {};
-		var data = new wabi.data(buffer);
-		var raw = this._dataset.raw;
+		const buffer = {};
+		const data = new wabi.data(buffer);
+		const raw = this._dataset.raw;
 
 		if(this.$emptyOption) {
 			buffer[""] = { value: "" };
 		}
 
-		for(var key in raw) {
+		for(const key in raw) {
 			buffer[key] = raw[key];
 		}
 

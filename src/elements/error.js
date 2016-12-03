@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("error", 
 {
@@ -13,7 +13,7 @@ wabi.element("error",
 			return "";
 		}
 
-		var text = this.$types[this.$value];
+		const text = this.$types[this.$value];
 		if(!text) {
 			return "";
 		}

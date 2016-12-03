@@ -1,4 +1,4 @@
-"use strict";
+import wabi from "../wabi";
 
 wabi.element("word", 
 {
@@ -19,11 +19,10 @@ wabi.element("word",
 		if(this.$value && value && value !== this.$value) 
 		{
 			this.setCls("highlight", true);
-			
-			var self = this;
-			setTimeout(function() {
-				self.setCls("highlight", false);
-			}, 600);
+
+			setTimeout(() => {
+				this.setCls("highlight", false);
+			}, 600)
 		}			
 	},
 
@@ -52,7 +51,7 @@ wabi.element("word",
 
 	handle_blur: function(event)
 	{
-		var newValue = this.html();
+		const newValue = this.html();
 		if(newValue) {
 			this.$value = newValue;
 		}
@@ -67,7 +66,7 @@ wabi.element("word",
 
 	handle_keydown: function(event)
 	{
-		var keyCode = event.domEvent.keyCode;
+		const keyCode = event.domEvent.keyCode;
 
 		// only 0..9, a..z, A..Z, -, _, ., space
 		if((keyCode > 47 && keyCode < 58) || 
