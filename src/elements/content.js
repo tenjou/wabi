@@ -2,29 +2,28 @@ import wabi from "../wabi";
 
 wabi.element("content", 
 {
-	set_value: function(value) 
-	{
-		this.removeAll();
-
-		this.$loadValue(value);
+	state: {
+		value: ""
 	},
 
-	$loadValue: function(value)
+	render() {
+		this.$loadValue(this.$value);
+	},
+
+	$loadValue(value)
 	{
 		if(!value) { return; }
 
-		var type = typeof(value);
-		
+		const type = typeof(value);
 		if(type === "object")
 		{
 			if(value instanceof Array)
 			{
-				for(var n = 0; n < value.length; n++)
+				for(let n = 0; n < value.length; n++)
 				{
-					var state = value[n];
-					if(typeof(state) === "string") 
-					{
-						var template = wabi.getFragment(state);
+					const state = value[n];
+					if(typeof(state) === "string") {
+						const template = wabi.getFragment(state);
 						this.$loadValue(template);
 					}
 					else {
@@ -38,9 +37,14 @@ wabi.element("content",
 		}
 		else 
 		{
-			var template = wabi.getFragment(value);
-			this.$loadValue(template);
-		}		
+			const fragment = wabi.getFragment(value);
+			if(!fragment) {
+				console.warn("(wabi.element.content) No such fragment found: " + value);
+				return;
+			}
+
+			this.$loadValue(fragment);
+		}
 	},
 
 	$loadState: function(state)
@@ -53,7 +57,7 @@ wabi.element("content",
 		const element = wabi.createElement(state.type, this);
 		if(!element) { return; }
 
-		for(const key in state)
+		for(let key in state)
 		{
 			if(key === "type") { continue; }
 

@@ -95,7 +95,7 @@ wabi.element("dropdown",
 			buffer[""] = { value: "" };
 		}
 
-		for(const key in raw) {
+		for(let key in raw) {
 			buffer[key] = raw[key];
 		}
 

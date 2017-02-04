@@ -17,7 +17,7 @@ wabi.element("row",
 				continue;
 			}
 
-			for(const key in elementCfg) 
+			for(let key in elementCfg) 
 			{
 				if(key === "type") { continue; }
 

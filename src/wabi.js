@@ -1,16 +1,15 @@
-import { Data, Watcher } from "./data";
-import { ElementEvent } from "./event";
+import { Data, Watcher, setDataProxy as dataProxy } from "./data";
+import ElementEvent from "./event";
 
-export { Data, Watcher, ElementEvent };
+export { Watcher, ElementEvent, dataProxy };
 
-const globalData = {};
 const elementsCached = {};
 const elementDefs = {};
 const fragments = {};
 const templates = {};
 const listeners = {};
 
-function ElementMetadata(name) 
+function ElementMetadata(name)
 {
 	this.name = name;
 	this.states = null;
@@ -20,7 +19,6 @@ function ElementMetadata(name)
 	this.elementsLinked = null;
 	this.elementsBinded = null;
 	this.events = null;
-	this.deps = null;
 }
 
 function Fragment(id, extend, props)
@@ -28,7 +26,7 @@ function Fragment(id, extend, props)
 	this.id = id;
 	this.props = props;
 
-	if(extend) 
+	if(extend)
 	{
 		if(typeof(extend) === "string") {
 			this.extend = [ extend ];
@@ -63,7 +61,7 @@ export function addTemplate(id, extend, props)
 	if(!props.type) {
 		console.warn("(Wabi.addTemplate) Invalid template type passed");
 		return false;
-	}		
+	}
 
 	if(this.templates[id]) {
 		console.warn("(Wabi.addTemplate) There is already added template with such id: " + props.id);
@@ -86,18 +84,14 @@ export function createTemplate(id)
 	const template = createElement(props.type);
 	template.flags |= template.Flag.REGION;
 
-	for(const key in props) 
+	for(let key in props)
 	{
 		if(key === "type") { continue; }
-		
+
 		template[key] = props[key];
 	}
 
 	return template;
-}
-
-export function createData(data) {
-	return new Data(data || {});
 }
 
 export function addFragment(id, extend, props)
@@ -105,7 +99,7 @@ export function addFragment(id, extend, props)
 	if(!id) {
 		console.warn("(Wabi.addFragment) Invalid fragment id passed");
 		return false;
-	}	
+	}
 
 	if(this.fragments[id]) {
 		console.warn("(Wabi.addFragment) There is already added fragment with such id: " + id);
@@ -122,7 +116,7 @@ export function addFragment(id, extend, props)
 	return true;
 }
 
-export function getFragment(id) 
+export function getFragment(id)
 {
 	const fragment = this.fragments[id];
 	if(!fragment) {
@@ -130,7 +124,7 @@ export function getFragment(id)
 		return null;
 	}
 
-	if(fragment.extend) 
+	if(fragment.extend)
 	{
 		const props = this.extendFragment([], fragment.extend);
 		props = this.appendProps(props, fragment.props);
@@ -149,7 +143,7 @@ function extendFragment(props, extend)
 			console.warn("(Wabi.extendFragment) Could not find fragment with id: " + fragment.id);
 			continue;
 		}
-		else 
+		else
 		{
 			if(fragment.extend) {
 				props = extendFragment(props, fragment.extend);
@@ -170,19 +164,21 @@ function appendProps(props, fragmentProps)
 	else {
 		props.push(fragmentProps);
 	}
-	
+
 	return props;
 }
+
+
 
 export function createElement(name, parent, params)
 {
 	let element;
 
 	const buffer = elementsCached[name];
-	if(buffer && buffer.length > 0) 
+	if(buffer && buffer.length > 0)
 	{
 		element = buffer.pop();
-		if(element) 
+		if(element)
 		{
 			element.flags = element.flagsInitial;
 
@@ -191,15 +187,15 @@ export function createElement(name, parent, params)
 			}
 		}
 	}
-	else 
+	else
 	{
 		const cls = WabiElement[name];
-		if(!cls) {			
+		if(!cls) {
 			console.warn("(Wabi.createElement) No such element found: " + name);
 			return null;
 		}
 
-		element = new WabiElement[name](parent, params);
+		element = new cls(parent, params);
 	}
 
 	element._setup();
@@ -233,10 +229,10 @@ export function on(name, func, owner)
 	}
 
 	let buffer = listeners[name];
-	if(!buffer) 
+	if(!buffer)
 	{
 		const eventName = "on" + name;
-		if(window[eventName] === void(0)) { 
+		if(window[eventName] === void(0)) {
 			console.warn("(Wabi.on) No such global event available: " + name);
 			return;
 		}
@@ -244,7 +240,7 @@ export function on(name, func, owner)
 		buffer = [ new Watcher(owner, func) ];
 		listeners[name] = buffer;
 
-		window[eventName] = function(domEvent) 
+		window[eventName] = function(domEvent)
 		{
 			var event = new ElementEvent(name, null, domEvent);
 			for(var n = 0; n < buffer.length; n++) {
@@ -253,7 +249,7 @@ export function on(name, func, owner)
 			}
 		}
 	}
-	else 
+	else
 	{
 		buffer.push(new Watcher(owner, func));
 	}
@@ -283,7 +279,7 @@ export function off(name, func, owner)
 	}
 }
 
-export function element(name, extend, props) 
+export function element(name, extend, props)
 {
 	if(props === undefined) {
 		props = extend;
@@ -310,7 +306,7 @@ const WabiElement = element;
 
 function genPrototype(name, extend, props)
 {
-	if(extend) 
+	if(extend)
 	{
 		const extendedDef = elementDefs[extend];
 		if(!extendedDef) {
@@ -322,7 +318,7 @@ function genPrototype(name, extend, props)
 		assignObj(newProps, extendedDef.props);
 		assignObj(newProps, props);
 		props = newProps;
-	}		
+	}
 
 	const states = {};
 	const statesLinked = {};
@@ -335,7 +331,7 @@ function genPrototype(name, extend, props)
 	let numElements = 0;
 	let valueLinked = false;
 
-	if(props.elements) 
+	if(props.elements)
 	{
 		const elementsProps = props.elements;
 		for(let elementKey in elementsProps)
@@ -363,7 +359,7 @@ function genPrototype(name, extend, props)
 				const watchKeyword = "watch_";
 				const watchKeywordLength = watchKeyword.length;
 
-				for(const key in item)
+				for(let key in item)
 				{
 					if(key === "type" || key === "link" || key === "bind") { continue; }
 
@@ -379,7 +375,7 @@ function genPrototype(name, extend, props)
 				}
 			}
 
-			const newItem = { 
+			const newItem = {
 				type: type,
 				link: link,
 				slot: numElements++,
@@ -404,18 +400,8 @@ function genPrototype(name, extend, props)
 		delete props.elements;
 	}
 
-	// Defines states:
-	const statesDefined = props.state;
-	const statesInitial = statesDefined;
-	if(statesDefined)
-	{
-		for(const key in statesDefined) {
-			states[key] = statesDefined[key];
-		}
-	}
-
 	// Define properties:
-	for(const key in props)
+	for(let key in props)
 	{
 		const p = Object.getOwnPropertyDescriptor(props, key);
 		if(p.get || p.set) {
@@ -433,7 +419,7 @@ function genPrototype(name, extend, props)
 			{
 				const stateName = buffer[1];
 
-				if(buffer[0] !== "handle") 
+				if(buffer[0] !== "handle")
 				{
 					if(states[stateName] === undefined) {
 						states[stateName] = null;
@@ -447,7 +433,7 @@ function genPrototype(name, extend, props)
 
 		proto[key] = variable;
 	}
-	
+
 	let statesProto;
 
 	if(name !== "basic")
@@ -456,38 +442,30 @@ function genPrototype(name, extend, props)
 		const basicStates = basicMetadata.states;
 
 		statesProto = Object.assign({}, basicStates);
-		statesProto = Object.assign(statesProto, states);
+		statesProto = Object.assign(statesProto, props.state);
 	}
-	else 
-	{
-		statesProto = states;			
+	else {
+		statesProto = states;
 	}
 
-	if(proto.render) 
-	{
-		const reg = /this\.\$([a-zA-Z]*)/g;
-		let result = reg.exec(proto.render);
-		while(result) 
-		{
-			deps[result[1]] = true;
-			result = reg.exec(proto.render);
+	for(let key in elementsLinked) {
+		if(statesProto[key] === undefined) {
+			statesProto[key] = null;
 		}
 	}
 
 	const bindsForElement = {};
 	for(let key in elementsBinded) {
-		bindsForElement[elementsBinded[key]] = key; 
+		bindsForElement[elementsBinded[key]] = key;
 	}
 
 	// Create metadata:
 	const metadata = new ElementMetadata(name);
 	metadata.states = statesProto;
 	metadata.statesLinked = statesLinked;
-	metadata.statesInitial = statesInitial;
 	metadata.elementsLinked = elementsLinked;
 	metadata.elementsBinded = elementsBinded;
 	metadata.bindsForElement = bindsForElement;
-	metadata.deps = deps;
 
 	if(numElements > 0) {
 		metadata.elements = elements;
@@ -504,7 +482,7 @@ function compileBasicElement(props, extend)
 {
 	const proto = genPrototype("basic", extend, props);
 
-	proto.flagsInitial = (proto.Flag.ENABLED);
+	proto.flagsInitial = proto.Flag.ENABLED;
 	proto.flags = proto.flagsInitial;
 
 	WabiElement.basic.prototype = proto;
@@ -523,7 +501,7 @@ function compileElement(name, props, extend)
 
 	const proto = element.prototype;
 
-	for(const key in elementProto)
+	for(let key in elementProto)
 	{
 		const p = Object.getOwnPropertyDescriptor(elementProto, key);
 		if(p.get || p.set) {
@@ -534,61 +512,24 @@ function compileElement(name, props, extend)
 		proto[key] = elementProto[key];
 	}
 
-	proto.deps = {};
-	proto.depStates = {};
-
 	// Generate setters:
 	const metadata = elementProto._metadata;
 	const statesLinked = metadata.statesLinked;
 	const states = metadata.states;
-	const statesProto = {};
 
-	for(const key in statesLinked) 
+	for(let key in states)
 	{
-		if(!states[key]) {
-			states[key] = undefined;
-		}
-	}
-
-	for(const key in states) 
-	{
-		const stateValue = states[key];
-		const stateValueType = typeof stateValue;
-
 		const link = statesLinked[key];
 		if(link) {
-			statesProto[key] = null;
 			defStateLink(proto, key, link);
 		}
-		else 
-		{
-			switch(stateValueType)
-			{
-				case "string":
-				case "object":
-					statesProto[key] = null;
-					break;
-
-				case "number":
-					statesProto[key] = 0;
-					break;
-
-				case "boolean":
-					statesProto[key] = false;
-					break;
-
-				default:
-					console.warn("(Wabi.compileElement) Unhandled stateValueType `" + stateValueType + "` for element: " + name);
-					statesProto[key] = null;
-					break;
-			}
-
+		else {
 			defState(proto, key);
 		}
 	}
 
 	function state() {};
-	state.prototype = statesProto;
+	state.prototype = states;
 	metadata.stateCls = state;
 
 	WabiElement[name] = element;
@@ -596,7 +537,7 @@ function compileElement(name, props, extend)
 
 function defState(proto, key)
 {
-	Object.defineProperty(proto, "$" + key, 
+	Object.defineProperty(proto, "$" + key,
 	{
 		set: function(value) {
 			this._updateState(key, value);
@@ -604,14 +545,14 @@ function defState(proto, key)
 		get: function() {
 			return this._$[key];
 		}
-	});	
+	});
 }
 
 function defStateLink(proto, key, link)
 {
-	Object.defineProperty(proto, "$" + key, 
+	Object.defineProperty(proto, "$" + key,
 	{
-		set: function(value) 
+		set: function(value)
 		{
 			const element = this.elements[link];
 			if(element) {
@@ -624,12 +565,12 @@ function defStateLink(proto, key, link)
 		get: function() {
 			return this.elements[link].$value;
 		}
-	});	
+	});
 }
 
 function assignObj(target, src)
 {
-	for(const key in src) 
+	for(let key in src)
 	{
 		const prop = Object.getOwnPropertyDescriptor(src, key);
 		if(prop.get || prop.set) {
@@ -641,12 +582,23 @@ function assignObj(target, src)
 	}
 }
 
+export function selectElementContents(element)
+{
+	const range = document.createRange();
+	range.selectNodeContents(element);
+
+	const selection = window.getSelection();
+	selection.removeAllRanges();
+	selection.addRange(range);
+};
+
+
 WabiElement.basic = function(parent, params)
 {
 	if(this.create) {
 		this.create(params);
 	}
-	
+
 	if(!this.domElement) {
 		this.domElement = document.createElement(this.tag ? this.tag : this._metadata.name);
 	}
@@ -664,10 +616,116 @@ WabiElement.basic = function(parent, params)
 	{
 		for(let n = 0; n < events.length; n++) {
 			this._addEvent(events[n]);
-		}		
+		}
 	}
 
 	if(this.prepare) {
 		this.prepare();
 	}
 };
+
+function AppendInfo(element, query)
+{
+	this.element = element;
+	this.query = query;
+}
+
+let elementsRenderNum = 0;
+let elementsBindNum = 0;
+const elementsRender = Array(16);
+const elementsBind = Array(16);
+const elementsAppend = [];
+export const globalData = new Data();
+
+export function data(key, obj)
+{
+	if(!obj) {
+		globalData.__syncAsObject(key);
+	}
+	else 
+	{
+		const data = globalData.getData(key);
+		if(!data) { return; }
+
+		data.__syncAsObject(obj);
+	}
+}
+
+export function appendElement(element, query) 
+{
+	let appendInfo = element._appendInfo;
+	if(!appendInfo) {
+		appendInfo = new AppendInfo(element, query);
+		element._appendInfo = appendInfo;
+		elementsAppend.push(appendInfo);
+	}
+	else {
+		appendInfo.query = query;
+	}
+}
+
+export function renderElement(element) 
+{
+	if(elementsRender.length === elementsRenderNum) {
+		elementsRender.length += 16;
+	}
+
+	elementsRender[elementsRenderNum] = element;
+	elementsRenderNum++;
+}
+
+export function bindElement(element) 
+{
+	if(elementsBind.length === elementsBindNum) {
+		elementsBind.length += 16;
+	}
+
+	elementsBind[elementsBindNum] = element;
+	elementsBindNum++;
+}
+
+function render() 
+{
+	if(elementsBindNum !== 0)
+	{
+		for(let n = 0; n < elementsBindNum; n++) {
+			elementsBind[n].updateBindings();
+		}
+
+		elementsBindNum = 0;
+	}
+
+	if(elementsRenderNum !== 0)
+	{
+		for(let n = 0; n < elementsRenderNum; n++) {
+			elementsRender[n].renderElement();
+		}
+
+		elementsRenderNum = 0;
+	}
+
+	if(elementsAppend.length !== 0)
+	{
+		for(let n = 0; n < elementsAppend.length; n++) 
+		{
+			const appendInfo = elementsAppend[n];
+
+			if(!appendInfo.element._appendInfo) { continue; }
+			appendInfo.element._appendInfo = null;
+
+			const parentElement = document.querySelector(appendInfo.query);
+			if(!parentElement) {
+				console.warn("(wabi) Could not find parent from query: " + appendInfo.query);
+				continue;
+			}
+
+			appendInfo.element.appendTo(parentElement);
+		}
+
+		elementsAppend.length = 0;
+	}
+
+	window.requestAnimationFrame(render);
+}
+
+render();

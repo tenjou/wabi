@@ -1,5 +1,5 @@
 
-export class ElementEvent
+export default class ElementEvent
 {
 	constructor(name, element, domEvent)
 	{

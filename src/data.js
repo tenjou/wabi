@@ -1,4 +1,17 @@
 
+const dataTuple = {
+	data: null,
+	key: null
+};
+
+let dataProxy = function DataProxy(data, obj) {
+	data.handle(obj);	
+};
+
+export function setDataProxy(func) {
+	dataProxy = func;
+}
+
 export class Watcher 
 {
 	constructor(owner, func) 
@@ -27,106 +40,27 @@ export class Data
 
 	set(key, value)
 	{
-		if(value === void(0)) 
-		{
-			if(wabi.dataProxy) 
-			{
-				wabi.dataProxy({ 
-					id: this.genId(),
-					type: "data",
-					action: "set",
-					value: key
-				});
-			} 
-			else {
-				this.performSet(key);
-			}
-		}
-		else 
-		{
-			if(wabi.dataProxy) 
-			{
-				wabi.dataProxy({ 
-					id: this.genId(),
-					type: "data",
-					action: "set",
-					key: key,
-					value: value
-				});
-			}
-			else {
-				this.performSetKey(key, value);
-			}
-		}
+		dataProxy(this, {
+			action: "set",
+			key: key,
+			value: value
+		});
 	}
 
-	performSet(value) 
+	performSet(key, value) 
 	{
-		this.raw = value;
-
-		if(this.watchers) 
-		{
-			var info;
-			for(var n = 0; n < this.watchers.length; n++) {
-				info = this.watchers[n];
-				info.func.call(info.owner, "set", null, value, 0, this);
-			}
-		}
-	}
-
-	performSetKey(key, value) 
-	{
-		if(typeof value === "string") 
-		{
-			if(value[0] === "*") {
-				var ref = new Reference(value, key, this);
-				this.raw[key] = ref;
-				return ref;
-			}
+		if(!this.getData(key)) {
+			return;
 		}
 
-		var index = key.indexOf(".");
-		if(index === -1) 
+		const data = dataTuple.data;
+		data.raw[dataTuple.key] = value;
+
+		if(data.watchers) 
 		{
-			if(value instanceof Object && !(value instanceof Data)) {
-				value = new Data(value, key, this);
-			}
-
-			this.raw[key] = value;
-		}
-		else
-		{
-			var id;
-			var data = this;
-			var buffer = key.split(".");
-			for(var n = 0; n < buffer.length - 1; n++) 
-			{
-				id = buffer[n];
-
-				var currData = data.get(id);
-				if(!currData) {
-					currData = new Data({}, id, data);
-					data[id] = currData;
-				}
-
-				data = currData;
-			}
-
-			id = buffer[n];
-
-			if(value instanceof Object && !(value instanceof Data)) {
-				value = new Data(value, id, data);
-			}
-
-			data.raw[id] = value;
-		}
-
-		if(this.watchers) 
-		{
-			var info;
-			for(var n = 0; n < this.watchers.length; n++) {
-				info = this.watchers[n];
-				info.func.call(info.owner, "set", key, value, 0, this);
+			for(let n = 0; n < data.watchers.length; n++) {
+				const info = data.watchers[n];
+				info.func.call(info.owner, "set", dataTuple.key, value, 0, data);
 			}
 		}
 
@@ -135,34 +69,37 @@ export class Data
 
 	setKeys(value)
 	{
-		if(wabi.dataProxy) 
+		if(dataProxy) 
 		{
-			wabi.dataProxy({ 
+			dataProxy(this, { 
 				id: this.genId(),
 				type: "data",
 				action: "setkeys",
 				value: value
 			});
 		}
-		else {
-			this.performSetKeys(value);
+		else
+		{
+			for(let key in value) {
+				this.performSet(key, value[key]);
+			}
 		}
 	}
 
 	performSetKeys(value)
 	{
-		for(var key in value) {
-			this.performSetKey(key, value[key]);
+		for(let key in value) {
+			this.performSet(key, value[key]);
 		}
 	}
 
 	add(key, value)
 	{
-		if(value === void(0)) 
+		if(value === undefined) 
 		{
-			if(wabi.dataProxy) 
+			if(dataProxy) 
 			{
-				wabi.dataProxy({ 
+				dataProxy(this, { 
 					id: this.genId(),
 					type: "data",
 					action: "add",
@@ -175,9 +112,9 @@ export class Data
 		}
 		else
 		{
-			if(wabi.dataProxy) 
+			if(dataProxy) 
 			{
-				wabi.dataProxy({ 
+				dataProxy(this, { 
 					id: this.genId(),
 					type: "data",
 					action: "add",
@@ -193,7 +130,7 @@ export class Data
 
 	push(key, value)
 	{
-		var buffer = this.get(key);
+		let buffer = this.get(key);
 		if(!buffer) {
 			buffer = new Data([], "content", this);
 			this.raw[key] = buffer;
@@ -201,7 +138,7 @@ export class Data
 		else
 		{
 			if(!(buffer.raw instanceof Array)) {
-				console.warn(`(Wabi.Data.push) Key '${key}' is '${key}' not an Array`);
+				console.warn(`(Wabi.Data.push) Key '${key}' is '${buffer.type}' not an Array`);
 				return;
 			}
 		}
@@ -227,9 +164,8 @@ export class Data
 
 		if(this.watchers) 
 		{
-			var info;
-			for(var n = 0; n < this.watchers.length; n++) {
-				info = this.watchers[n];
+			for(let n = 0; n < this.watchers.length; n++) {
+				const info = this.watchers[n];
 				info.func.call(info.owner, "add", null, value, -1, this);
 			}
 		}	
@@ -264,9 +200,8 @@ export class Data
 
 		if(this.watchers) 
 		{
-			var info;
-			for(var n = 0; n < this.watchers.length; n++) {
-				info = this.watchers[n];
+			for(let n = 0; n < this.watchers.length; n++) {
+				const info = this.watchers[n];
 				info.func.call(info.owner, "add", key, value, -1, this);
 			}
 		}
@@ -280,9 +215,9 @@ export class Data
 		}
 		else
 		{
-			if(wabi.dataProxy) 
+			if(dataProxy) 
 			{
-				wabi.dataProxy({ 
+				dataProxy(this, { 
 					id: this.genId(),
 					type: "data",
 					action: "remove",
@@ -328,7 +263,7 @@ export class Data
 
 	removeItem(key, id)
 	{
-		var item = this.raw[key];
+		const item = this.raw[key];
 		if(typeof(item) !== "object") {
 			return;
 		}
@@ -342,9 +277,8 @@ export class Data
 
 		if(this.watchers) 
 		{
-			var info;
-			for(var n = 0; n < this.watchers.length; n++) {
-				info = this.watchers[n];
+			for(let n = 0; n < this.watchers.length; n++) {
+				const info = this.watchers[n];
 				info.func.call(info.owner, "removeItem", key, null, id, this);
 			}
 		}
@@ -353,48 +287,40 @@ export class Data
 	get(index) 
 	{
 		if(index === "*") {
-			return new Data(this.raw, this.id, this.parent);
-		}
-		else if(index === "@") {
-			return this.id;
+			return this;
 		}
 
-		var data;
+		let data;
 		if(!isNaN(index) && index !== "") 
 		{
 			data = this.raw[index | 0];
 
-			if(typeof(data) === "object" && !(data instanceof Data)) {
+			if(typeof data === "object" && !(data instanceof Data)) 
+			{
 				data = new Data(data, index + "", this);
 				this.raw[index] = data;
 			}
 		}
 		else 
 		{
-			var cursor = index.indexOf(".");
+			let cursor = index.indexOf(".");
 			if(cursor === -1) 
 			{
 				data = this.raw[index];
-
 				if(data)
 				{
-					if(typeof data === "object" && !(data instanceof Data)) {
+					if(typeof data === "object" && !(data instanceof Data)) 
+					{
 						data = new Data(data, index + "", this);
 						this.raw[index] = data;
-					}
-					else if(typeof data === "string" && data[0] === "*") {
-						data = new Reference(data, index, this);
-						this.raw[index] = data;
-						return data;
 					}
 				}
 			}
 			else
 			{
-				var buffer = index.split(".");
+				const buffer = index.split(".");
 				data = this;
-				for(var n = 0; n < buffer.length; n++)
-				{
+				for(let n = 0; n < buffer.length; n++) {
 					data = data.getItem(buffer[n]);
 				}
 			}
@@ -403,13 +329,57 @@ export class Data
 		return data;
 	}
 
+	getData(key)
+	{
+		let data;
+
+		const index = key.lastIndexOf(".");
+		if(index === -1) 
+		{
+			dataTuple.data = this;
+			dataTuple.key = key;
+			return dataTuple;
+		}
+		else 
+		{
+			const buffer = key.split(".");
+
+			data = this;
+			for(let n = 0; n < buffer.length - 1; n++) 
+			{
+				let id = buffer[n];
+				const item = data.raw[id];
+
+				if(typeof item !== "object") {
+					console.warn("(data.getData) Type is not an object for key: " + key);
+					return null;
+				}
+
+				if(!(item instanceof Data)) {
+					const newData = new Data(item, id + "", data);
+					data.raw[id] = newData;
+					data = newData;
+				}
+				else {
+					data = item;
+				}
+			}
+
+			dataTuple.data = data;
+			dataTuple.key = buffer[buffer.length - 1];
+			return dataTuple;
+		}
+
+		return null;
+	}
+
 	getItem(id)
 	{
 		if(id === "*") {
 			return new Data(this.raw, this.id, this.parent);
 		}
 
-		var data;
+		let data;
 		if(!isNaN(id) && id !== "") {
 			data = this.raw[id | 0];
 		}
@@ -450,8 +420,8 @@ export class Data
 	{
 		if(!this.parent) { return this.id; }
 
-		var id = this.id;
-		var parent = this.parent;
+		let id = this.id;
+		let parent = this.parent;
 		do 
 		{
 			if(!parent.id) { return id; }
@@ -486,10 +456,10 @@ export class Data
 	{
 		if(!this.watchers) { return; }
 
-		var num = this.watchers.length;
-		for(var n = 0; n < num; n++) 
+		const num = this.watchers.length;
+		for(let n = 0; n < num; n++) 
 		{
-			var info = this.watchers[n];
+			const info = this.watchers[n];
 			if(info.owner === owner && info.func === func) {
 				this.watchers[n] = this.watchers[num - 1];
 				this.watchers.pop();
@@ -498,12 +468,22 @@ export class Data
 		}
 	}
 
+	handle(item)
+	{
+		switch(item.action)
+		{
+			case "set":
+				this.performSet(item.key, item.value);
+				break;
+		}
+	}
+
 	sync() 
 	{
 		if(this.watchers) 
 		{
-			for(var n = 0; n < this.watchers.length; n++) {
-				var info = this.watchers[n];
+			for(let n = 0; n < this.watchers.length; n++) {
+				const info = this.watchers[n];
 				info.func.call(info.owner, "sync", null, null, 0, this);
 			}
 		}	
@@ -526,12 +506,12 @@ export class Data
 	{
 		this.raw = {};
 
-		for(var key in data)
+		for(let key in data)
 		{
-			var srcValue = this.raw[key];
-			var targetValue = data[key];
+			const srcValue = this.raw[key];
+			const targetValue = data[key];
 
-			if(srcValue === void(0)) {
+			if(srcValue === undefined) {
 				this.raw[key] = targetValue;
 			}
 			else if(srcValue === targetValue) {
@@ -540,8 +520,8 @@ export class Data
 
 			if(this.watchers) 
 			{
-				for(var n = 0; n < this.watchers.length; n++) {
-					var info = this.watchers[n];
+				for(let n = 0; n < this.watchers.length; n++) {
+					const info = this.watchers[n];
 					info.func.call(info.owner, "set", key, targetValue, 0, this);
 				}
 			}
@@ -555,7 +535,7 @@ export class Data
 			return;
 		}
 
-		var index = this.refs.indexOf(ref);
+		const index = this.refs.indexOf(ref);
 		this.refs[index] = this.refs[this.refs.length - 1];
 		this.refs.pop();
 	}
@@ -565,7 +545,7 @@ export class Data
 	}
 }
 
-class Reference
+export class Reference
 {
 	constructor(path, id, parent) 
 	{

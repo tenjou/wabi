@@ -6,24 +6,26 @@ wabi.element("word",
 		value: ""
 	},
 
-	prepare: function()
+	prepare()
 	{
 		this.attrib("spellcheck", "false");
 		this.attrib("tabindex", "0");
 	},
 
-	set_value: function(value)
-	{
-		this.html(value);
+	// set_value(value)
+	// {
+	// 	if(this.$value && value && value !== this.$value) 
+	// 	{
+	// 		this.cls("highlight", true);
 
-		if(this.$value && value && value !== this.$value) 
-		{
-			this.setCls("highlight", true);
+	// 		setTimeout(() => {
+	// 			this.cls("highlight", false);
+	// 		}, 600)
+	// 	}
+	// },
 
-			setTimeout(() => {
-				this.setCls("highlight", false);
-			}, 600)
-		}			
+	render: function() {
+		return this.$value;
 	},
 
 	set editable(value)
@@ -45,7 +47,7 @@ wabi.element("word",
 		if(this.editable) {
 			this.domElement.contentEditable = "true";
 			this.domElement.focus();
-			meta.selectElementContents(this.domElement);
+			wabi.selectElementContents(this.domElement);
 		}
 	},
 
