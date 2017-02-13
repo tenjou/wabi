@@ -11,7 +11,7 @@ export {
 } from "./src/store"
 
 export { 
-	renderFunc, update 
+	route, update 
 } from "./src/renderer"
 
 export {

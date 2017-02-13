@@ -1,23 +1,40 @@
 
 let _patchFunc = null
 let _renderFunc = null
-let dirty = true
+let dirty = false
+let routes = []
 
-function patchFunc(func) {
+function Route(regexp, renderFunc) {
+	this.regexp = regexp
+	this.renderFunc = renderFunc
+}
+
+const patchFunc = function(func) {
 	_patchFunc = func
 }
 
-function renderFunc(func) {
-	_renderFunc = func
-	dirty = true
-}
-
-function render() 
+const render = function() 
 {
 	if(dirty)
 	{
-		if(_renderFunc) {
-			_patchFunc(document.body, _renderFunc)
+		const pathname = document.location.pathname
+		let foundRoute = false
+
+		for(let n = 0; n < routes.length; n++) 
+		{
+			const routeItem = routes[n]
+			if(pathname.match(routeItem.regexp)) 
+			{
+				foundRoute = true
+				if(routeItem.renderFunc) {
+					_patchFunc(document.body, routeItem.renderFunc)
+					break
+				}
+			}
+		}
+
+		if(!foundRoute) {
+			console.warn("Could not found route for: " + pathname)
 		}
 
 		dirty = false
@@ -26,14 +43,19 @@ function render()
 	window.requestAnimationFrame(render)
 }
 
-function update() {
+const update = function() {
+	dirty = true
+}
+
+const route = function(regexp, renderFunc) {
+	routes.push(new Route(regexp, renderFunc))
 	dirty = true
 }
 
 render()
 
 export { 
-	patchFunc, 
-	renderFunc,
-	update
+	patchFunc,
+	update,
+	route
 }
