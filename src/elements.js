@@ -104,8 +104,27 @@ const componentVoid = function(component, attributes, key)
 	{
 		data = nextComponentStart(component)
 		data.key = key
-		data.parentAttributes = attributes || null
 
+		if(attributes) 
+		{
+			data.parentAttributes = attributes
+
+			for(let key in attributes)
+			{
+				if(key[0] === "$") 
+				{
+					const state = key.slice(1)
+
+					if(data.$[state] === undefined) {
+						console.log(`State '${state}' not defined for component:`, component)
+						return
+					}
+
+					data[key] = attributes[key]
+				}
+			}
+		}
+		
 		if(data.setup) {
 			data.setup()
 		}
