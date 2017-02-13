@@ -63,7 +63,7 @@ const elementOpen = function(tag, attributes, key, statics)
 
 	data.attributes = attributes
 
-	if(data.$value !== null) {
+	if(!data.render && data.$value !== null) {
 		text(data.$value)
 	}
 

@@ -66,7 +66,7 @@ const setStyleValue = function(style, prop, value) {
  * @param {*} style The style to set. Either a string of css or an object
  *     containing property-value pairs.
  */
-function applyStyle(el, name, style) 
+function applyStyle(el, name, style)
 {
   if (typeof style === 'string') {
 	el.style.cssText = style;
@@ -106,12 +106,12 @@ const applyAttributeTyped = function(el, name, value) {
 };
 
 
-function updateAttribute(element, name, value) 
+function updateAttribute(element, name, value)
 {
 	const data = getData(element)
 	const attrs = data.attributes
 
-	if(name[0] === "$") 
+	if(name[0] === "$")
 	{
 		const state = name.slice(1)
 
