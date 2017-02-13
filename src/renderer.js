@@ -1,15 +1,15 @@
 
-let _patchFunc = null;
-let _renderFunc = null;
-let dirty = true;
+let _patchFunc = null
+let _renderFunc = null
+let dirty = true
 
 function patchFunc(func) {
-	_patchFunc = func;
+	_patchFunc = func
 }
 
 function renderFunc(func) {
-	_renderFunc = func;
-	dirty = true;
+	_renderFunc = func
+	dirty = true
 }
 
 function render() 
@@ -17,20 +17,20 @@ function render()
 	if(dirty)
 	{
 		if(_renderFunc) {
-			_patchFunc(document.body, _renderFunc);
+			_patchFunc(document.body, _renderFunc)
 		}
 
-		dirty = false;
+		dirty = false
 	}
 
 	window.requestAnimationFrame(render)
 }
 
 function update() {
-	dirty = true;
+	dirty = true
 }
 
-render();
+render()
 
 export { 
 	patchFunc, 

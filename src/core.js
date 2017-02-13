@@ -397,6 +397,16 @@ const createText = function(doc) {
 	return node
 }
 
+const selectElementContents = function(node)
+{
+	const range = doc.createRange()
+	range.selectNodeContents(node)
+
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+}
+
 /**
  * Skips the next Node to be patched, moving the pointer forward to the next
  * sibling of the current pointer.
@@ -414,5 +424,6 @@ export {
 	currentPointer,
 	skip,
 	skipNode,
-	getNextNode
+	getNextNode,
+	selectElementContents
 };

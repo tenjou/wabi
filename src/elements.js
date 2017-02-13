@@ -8,7 +8,6 @@ import { updateAttribute } from './attributes';
 import {
 	nextComponentStart,
 	nextComponentEnd,
-	useNextComponentData,
 	getData
 } from "./component";
 import {
@@ -27,94 +26,48 @@ const elementOpen = function(tag, attributes, key, statics)
 		assertNotInSkip("elementOpen");
 	}
 
-	const node = coreElementOpen(tag, key);
-	const data = getData(node);
-
-	const nextComponentData = useNextComponentData()
-	if(nextComponentData)
-	{
-		key = key ? key : nextComponentData.key
-
-		if(nextComponentData.attributes) {
-			attributes = attributes ? attributes.concat(nextComponentData.attributes) : nextComponentData.attributes
-		}
-
-		if(nextComponentData.statics) {
-			statics = statics ? statics.concat(nextComponentData.statics) : nextComponentData.statics
-		}
-	}
+	const node = coreElementOpen(tag, key)
+	const data = getData(node)
 
 	if(statics && !data.staticsApplied)
 	{
-		for(let n = 0; n < statics.length; n += 2) {
-			const name = statics[n];
-			const value = statics[n + 1];
-			updateAttribute(node, name, value);
+		for(let key in statics) {
+			updateAttribute(node, key, statics[key])
 		}
 
 		data.staticsApplied = true;
 	}
 
-	/*
-	 * Checks to see if one or more attributes have changed for a given Element.
-	 * When no attributes have changed, this is much faster than checking each
-	 * individual argument. When attributes have changed, the overhead of this is
-	 * minimal.
-	 */
-
-	const attrsArr = data.attrsArr;
-	const newAttrs = data.newAttrs;
-	const isNew = !attrsArr.length;
-	let i = 0;
-	let j = 0;
-
-	const numArgs = attributes ? attributes.length : 0;
-
-	for (; i < numArgs; i += 2, j += 2) {
-	const attr = attributes[i];
-	if (isNew) {
-		attrsArr[j] = attr;
-		newAttrs[attr] = undefined;
-	} else if (attrsArr[j] !== attr) {
-		break;
+	if(data.parentAttributes) {
+		attributes = attributes ? Object.assign(attributes, data.parentAttributes) : data.parentAttributes
 	}
 
-	const value = attributes[i + 1];
-	if (isNew || attrsArr[j + 1] !== value) {
-		attrsArr[j + 1] = value;
-		updateAttribute(node, attr, value);
-	}
+	const prevAttributes = data.attributes
+
+	// Remove attributes
+	for(let key in prevAttributes) {
+		if(!attributes[key]) {
+			updateAttribute(node, key, undefined)
+		}
 	}
 
-	if (i < numArgs || j < attrsArr.length) {
-	for (; i < numArgs; i += 1, j += 1) {
-		attrsArr[j] = attributes[i];
+	// Update attributes
+	for(let key in attributes) 
+	{
+		const value = attributes[key]
+
+		if(!prevAttributes[key] || prevAttributes[key] !== value) {
+			updateAttribute(node, key, value)
+		}
 	}
 
-	if (j < attrsArr.length) {
-		attrsArr.length = j;
-	}
-
-	/*
-	 * Actually perform the attribute update.
-	 */
-	for (i = 0; i < attrsArr.length; i += 2) {
-		const name = /** @type {string} */(attrsArr[i]);
-		const value = attrsArr[i + 1];
-		newAttrs[name] = value;
-	}
-
-	for (const attr in newAttrs) {
-		updateAttribute(node, attr, newAttrs[attr]);
-		newAttrs[attr] = undefined;
-	}
-	}
+	data.attributes = attributes
 
 	if(data.$value !== null) {
 		text(data.$value)
 	}
 
-	return node;
+	return node
 };
 
 const elementClose = function(tag)
@@ -137,18 +90,22 @@ const elementVoid = function(tag, attributes, key, statics) {
 	return elementClose(tag)
 }
 
-const componentVoid = function(component, attributes, key, statics)
+const componentVoid = function(component, attributes, key)
 {
 	if(!component) {
-		console.warn("Invalid component passed")
+		console.warn("Invalid component object passed")
 		return
 	}
 
 	const node = getNextNode()
 	let data = node ? node.metaData : null
 
-	if(!data || data.constructor !== component) {
-		data = nextComponentStart(component, attributes, key, statics)
+	if(!data || data.constructor !== component) 
+	{
+		data = nextComponentStart(component)
+		data.key = key
+		data.parentAttributes = attributes || null
+
 		if(data.setup) {
 			data.setup()
 		}
@@ -168,9 +125,9 @@ const text = function(value, formatFunc)
 	const node = coreText()
 	const data = getData(node)
 
-	if(data.text !== value)
+	if(data.$.value !== value)
 	{
-		data.text = value
+		data.$.value = value
 
 		if(formatFunc) {
 			node.data = formatFunc(value)

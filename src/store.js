@@ -138,7 +138,14 @@ class Store
 
 	get(key)
 	{
-		if(!key) { return this.data; }
+		if(!key) 
+		{
+			if(key === undefined) {
+				return ""
+			}
+
+			return this.data
+		}
 
 		const buffer = key.split(".")
 		let data = this.data

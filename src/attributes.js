@@ -106,38 +106,28 @@ const applyAttributeTyped = function(el, name, value) {
 };
 
 
-/**
- * Calls the appropriate attribute mutator for this attribute.
- * @param {!Element} el
- * @param {string} name The attribute's name.
- * @param {*} value The attribute's value.
- */
 function updateAttribute(element, name, value) 
 {
-	const data = getData(element);
-	const attrs = data.attrs;
+	const data = getData(element)
+	const attrs = data.attributes
 
 	if(name[0] === "$") 
 	{
-		const state = name.slice(1);
+		const state = name.slice(1)
 
 		if(data.$[state] === undefined) {
-			console.log(`State '${state}' not defined for element:`, element);
-			return;
+			console.log(`State '${state}' not defined for element:`, element)
+			return
 		}
 
-		data[name] = value;
+		data[name] = value
 	}
 	else
 	{
-		if(attrs[name] === value) { return; }
-
-		const mutator = attributes[name] || applyAttributeTyped;
-		mutator(element, name, value);
-
-		attrs[name] = value;
+		const mutator = attributes[name] || applyAttributeTyped
+		mutator(element, name, value)
 	}
-};
+}
 
 const attributes = Object.create(null)
 attributes.style = applyStyle
@@ -146,6 +136,5 @@ attributes.bind = applyBind
 export {
 	updateAttribute,
 	applyProp,
-	applyAttr,
-	attributes
+	applyAttr
 }

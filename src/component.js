@@ -1,13 +1,7 @@
 import { store } from "./store";
 import { update } from "./renderer";
 
-let nextComponentDataHolder = {
-	ref: null,
-	attributes: null,
-	key: null,
-	statics: null
-}
-let nextComponentData = null
+let nextComponent = null
 
 const component = function(componentProto)
 {
@@ -34,7 +28,7 @@ const component = function(componentProto)
 		Object.defineProperty(proto, "$" + key,
 		{
 			set(value) {
-				this.updateState(key, value)
+				this.setState(key, value)
 			},
 			get() {
 				return this.$[key]
@@ -54,25 +48,8 @@ const component = function(componentProto)
 
 function NodeData(nodeName, key) 
 {
-	/**
-	 * The attributes and their values.
-	 * @const {!Object<string, *>}
-	 */
-	this.attrs = Object.create(null);
-
-	/**
-	 * An array of attribute name/value pairs, used for quickly diffing the
-	 * incomming attributes to see if the DOM node's attributes need to be
-	 * updated.
-	 * @const {Array<*>}
-	 */
-	this.attrsArr = [];
-
-	/**
-	 * The incoming attributes for this Node, before they are updated.
-	 * @const {!Object<string, *>}
-	 */
-	this.newAttrs = Object.create(null);
+	this.attributes = Object.create(null)
+	this.parentAttributes = null
 
 	/**
 	 * Whether or not the statics have been applied for the node yet.
@@ -111,19 +88,12 @@ function NodeData(nodeName, key)
 	 */
 	this.nodeName = nodeName;
 
-	/**
-	 * @type {?string}
-	 */
-	this.text = null;
-
 	const currState = {}
 	for(let key in this.state) {
 		currState[key] = this.state[key]
 	}
 
 	this.$ = currState;
-
-	this._bind = null;
 }
 
 NodeData.prototype = 
@@ -132,28 +102,28 @@ NodeData.prototype =
 		value: null
 	},
 
-	remove() {
-		if(this._bind) {
-			store.unwatch(this._bind)
+	remove() 
+	{
+		if(this.attributes.bind) {
+			store.unwatch(this.attributes.bind)
 		}
 	},
 
 	setState(state, value)
 	{
-		if(this.$[state] === value) { return; }
+		if(this.$[state] === value) { return }
 
-		if(this._bind) {
-			store.set(this._bind, value);
+		if(state === "value" && this.attributes.bind) {
+			store.set(this.attributes.bind, value)
 		}
 		else {
-			this.updateState(state, value);
+			this.updateState(state, value)
+			update()
 		}
 	},
 
-	updateState(state, value)
-	{
-		this.$[state] = value;
-		update();
+	updateState(state, value) {
+		this.$[state] = value
 	},
 
 	set $value(value) {
@@ -166,34 +136,35 @@ NodeData.prototype =
 
 	handleAction(payload) {
 		this.updateState("value", payload.value)
+		update()
 	},
 
 	set bind(value) 
 	{
-		if(this._bind) {
-			store.unwatch(this._bind, this)
+		if(this.attributes.bind) {
+			store.unwatch(this.attributes.bind, this)
 		}
 
-		this._bind = value
-
-		if(this._bind) {
-			store.watch(this._bind, this)
+		if(value) {
+			store.watch(value, this)
 		}
 
-		this.updateState("value", store.get(this._bind))
+		this.updateState("value", store.get(value))
 	},
 
 	get bind() {
-		return this._bind
+		return this.attributes.bind
 	}
 }
 
 const initData = function(node, nodeName, key)
 {
 	let data
-	if(nextComponentData) {
-		data = nextComponentData.ref
+	if(nextComponent) {
+		data = nextComponent
 		data.nodeName = nodeName
+		data.key = data.key || key
+		nextComponent = null
 	}
 	else {
 		data = new NodeData(nodeName, key)
@@ -223,49 +194,36 @@ const importNode = function(node)
 		getData(node.parentNode).keyMap[key] = node;
 	}
 
-	if(isElement) {
-		const attributes = node.attributes;
-		const attrs = data.attrs;
-		const newAttrs = data.newAttrs;
-		const attrsArr = data.attrsArr;
+	// if(isElement) {
+	// 	const attributes = node.attributes;
+	// 	const attrs = data.attrs;
+	// 	const newAttrs = data.newAttrs;
+	// 	const attrsArr = data.attrsArr;
 
-		for (let i = 0; i < attributes.length; i += 1) {
-			const attr = attributes[i];
-			const name = attr.name;
-			const value = attr.value;
+	// 	for (let i = 0; i < attributes.length; i += 1) {
+	// 		const attr = attributes[i];
+	// 		const name = attr.name;
+	// 		const value = attr.value;
 
-			attrs[name] = value;
-			newAttrs[name] = undefined;
-			attrsArr.push(name);
-			attrsArr.push(value);
-		}
-	}
+	// 		attrs[name] = value;
+	// 		newAttrs[name] = undefined;
+	// 		attrsArr.push(name);
+	// 		attrsArr.push(value);
+	// 	}
+	// }
 
 	for (let child = node.firstChild; child; child = child.nextSibling) {
 		importNode(child);
 	}
 }
 
-const nextComponentStart = function(component, attributes, key, statics) {
-	nextComponentData = nextComponentDataHolder
-	nextComponentData.ref = new component(null, key)
-	nextComponentData.attributes = attributes
-	nextComponentData.key = key
-	nextComponentData.statics = statics
-	return nextComponentData.ref
+const nextComponentStart = function(componentCls) {
+	nextComponent = new componentCls(null, null)
+	return nextComponent
 }
 
 const nextComponentEnd = function() {
-	nextComponentData = null
-}
-
-const useNextComponentData = function() 
-{
-	if(!nextComponentData) { return null }
-	
-	let tmp = nextComponentData
-	nextComponentData = null
-	return tmp
+	nextComponent = null
 }
 
 export {
@@ -274,6 +232,5 @@ export {
 	importNode,
 	component,
 	nextComponentStart,
-	nextComponentEnd,
-	useNextComponentData
+	nextComponentEnd
 }

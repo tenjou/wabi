@@ -17,3 +17,7 @@ export {
 export {
 	component
 } from "./src/component"
+
+export {
+	selectElementContents
+} from "./src/core"
