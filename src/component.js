@@ -117,13 +117,9 @@ NodeData.prototype =
 			store.set(this.attributes.bind, value)
 		}
 		else {
-			this.updateState(state, value)
+			this.$[state] = value
 			update()
 		}
-	},
-
-	updateState(state, value) {
-		this.$[state] = value
 	},
 
 	set $value(value) {
@@ -135,7 +131,7 @@ NodeData.prototype =
 	},
 
 	handleAction(payload) {
-		this.updateState("value", payload.value)
+		this.$.value = payload.value
 		update()
 	},
 
@@ -149,7 +145,7 @@ NodeData.prototype =
 			store.watch(value, this)
 		}
 
-		this.updateState("value", store.get(value))
+		this.$.value = store.get(value)
 	},
 
 	get bind() {

@@ -184,7 +184,7 @@ const alignWithDOM = function(nodeName, key) {
 	let node;
 
 	// Check to see if the node has moved within the parent.
-	if(key) 
+	if(key)
 	{
 		const keyNode = keyMap[key];
 		if (keyNode) {
@@ -199,7 +199,7 @@ const alignWithDOM = function(nodeName, key) {
 	}
 
 	// Create the node if it doesn't exist.
-	if(!node) 
+	if(!node)
 	{
 		if (nodeName === '#text') {
 			node = createText(doc);
@@ -231,12 +231,12 @@ const alignWithDOM = function(nodeName, key) {
 	currentNode = node;
 };
 
-const removeChild = function(node, child, keyMap) 
+const removeChild = function(node, child, keyMap)
 {
 	const childData = getData(child)
 
-	node.removeChild(child)
 	childData.remove()
+	node.removeChild(child)
 
 	const key = childData.key
 	if(key) {
@@ -289,22 +289,22 @@ const enterNode = function() {
 	currentNode = null;
 };
 
-const nextNode = function() 
+const nextNode = function()
 {
 	if(currentNode) {
 		currentNode = currentNode.nextSibling
-	} 
+	}
 	else {
 		currentNode = currentParent.firstChild
 	}
 }
 
-const getNextNode = function() 
+const getNextNode = function()
 {
 	if(currentNode) {
 		return currentNode.nextSibling
-	} 
-		
+	}
+
 	return currentParent.firstChild
 }
 
@@ -325,7 +325,7 @@ const elementOpen = function(tag, key) {
 	return currentParent
 }
 
-const elementClose = function() 
+const elementClose = function()
 {
 	if(process.env.NODE_ENV !== "production") {
 		setInSkip(false)
@@ -358,7 +358,7 @@ const currentElement = function() {
 /**
  * @return {Node} The Node that will be evaluated for the next instruction.
  */
-const currentPointer = function() 
+const currentPointer = function()
 {
 	if (process.env.NODE_ENV !== 'production') {
 		assertInPatch('currentPointer', context);
@@ -367,7 +367,7 @@ const currentPointer = function()
 
 	if(currentNode) {
 		return currentNode.nextSibling
-	} 
+	}
 
 	return currentParent.firstChild
 }

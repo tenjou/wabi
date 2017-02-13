@@ -38,8 +38,18 @@ const elementOpen = function(tag, attributes, key, statics)
 		data.staticsApplied = true;
 	}
 
-	if(data.parentAttributes) {
-		attributes = attributes ? Object.assign(attributes, data.parentAttributes) : data.parentAttributes
+	let renderText = false
+
+	if(data.parentAttributes) 
+	{
+		if(attributes) 
+		{
+			renderText = (attributes.$value !== undefined | attributes.bind !== undefined)
+			attributes = Object.assign(attributes, data.parentAttributes)
+		}
+		else {
+			attributes = data.parentAttributes
+		}
 	}
 
 	const prevAttributes = data.attributes
@@ -61,10 +71,19 @@ const elementOpen = function(tag, attributes, key, statics)
 		}
 	}
 
-	data.attributes = attributes
+	data.attributes = attributes || {}
 
-	if(!data.render && data.$value !== null) {
-		text(data.$value)
+	if(data.render)
+	{
+		if(renderText) {
+			text(data.$value)
+		}
+	}
+	else 
+	{
+		if(data.$value !== null) {
+			text(data.$value)
+		}
 	}
 
 	return node
@@ -132,6 +151,8 @@ const componentVoid = function(component, attributes, key)
 
 	data.render()
 	nextComponentEnd()
+
+	return data
 }
 
 const text = function(value, formatFunc)
