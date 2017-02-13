@@ -142,6 +142,10 @@ const componentVoid = function(component, attributes, key)
 					data[key] = attributes[key]
 				}
 			}
+
+			if(attributes.bind) {
+				data.bind = attributes.bind
+			}
 		}
 		
 		if(data.setup) {
