@@ -110,8 +110,9 @@ function updateAttribute(element, name, value)
 {
 	const data = getData(element)
 	const attrs = data.attributes
+	const firstChar = name[0]
 
-	if(name[0] === "$")
+	if(firstChar === "$")
 	{
 		const state = name.slice(1)
 

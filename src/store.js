@@ -120,6 +120,10 @@ class Store
 				break
 			}
 		}
+
+		if(buffer.length === 0) {
+			delete this.watchers[key]
+		}
 	}
 
 	emit(payload)

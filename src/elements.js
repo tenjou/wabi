@@ -145,6 +145,7 @@ const componentVoid = function(component, attributes, key)
 
 			if(attributes.bind) {
 				data.bind = attributes.bind
+				data.attributes.bind = attributes.bind
 			}
 		}
 		

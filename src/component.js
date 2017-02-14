@@ -105,7 +105,7 @@ NodeData.prototype =
 	remove() 
 	{
 		if(this.attributes.bind) {
-			store.unwatch(this.attributes.bind)
+			store.unwatch(this.attributes.bind, this)
 		}
 	},
 
