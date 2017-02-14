@@ -238,9 +238,24 @@ const removeChild = function(node, child, keyMap)
 	childData.remove()
 	node.removeChild(child)
 
+	const children = child.childNodes
+	for(let n = 0; n < children.length; n++) {
+		removeData(children[n])
+	}
+
 	const key = childData.key
 	if(key) {
 		delete keyMap[key]
+	}
+}
+
+const removeData = function(node) 
+{
+	node.metaData.remove()
+
+	const children = node.childNodes
+	for(let n = 0; n < children.length; n++) {
+		removeData(children[n])
 	}
 }
 

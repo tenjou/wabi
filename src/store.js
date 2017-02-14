@@ -43,19 +43,13 @@ class Store
 	{
 		if(!this.getData(payload.key)) { return }
 
-		const data = tuple.data
-		const value = payload.value
-
-		if(typeof value === "string") {
-			data[tuple.key] = value
+		if(!tuple.key) {
+			this.data = payload.value
 		}
-		else
-		{
-			for(let key in value) {
-				data[key] = value[key]
-			}
+		else {
+			tuple.data[tuple.key] = payload.value
 		}
-
+		
 		this.emit(payload);
 	}
 
