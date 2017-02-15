@@ -12,7 +12,7 @@ export {
 
 export { 
 	route, update 
-} from "./src/renderer"
+} from "./src/router"
 
 export {
 	component

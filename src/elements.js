@@ -38,7 +38,7 @@ const elementOpen = function(tag, attributes, key, statics)
 		data.staticsApplied = true;
 	}
 
-	let renderText = false
+	let renderText = (attributes && attributes.$value) ? true : false
 
 	if(data.parentAttributes) 
 	{

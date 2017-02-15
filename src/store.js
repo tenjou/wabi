@@ -1,4 +1,4 @@
-import { update } from "./renderer"
+import { update } from "./router"
 
 const tuple = {
 	data: null,

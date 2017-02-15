@@ -10,7 +10,7 @@ import {
 	setInSkip
 } from './assertions';
 import { getFocusedPath, moveBefore } from './utils';
-import { patchFunc } from "./renderer";
+import { patchFunc } from "./router";
 
 let currentNode = null;
 let currentParent = null;

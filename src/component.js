@@ -1,5 +1,5 @@
 import { store } from "./store";
-import { update } from "./renderer";
+import { update } from "./router";
 
 let nextComponent = null
 
