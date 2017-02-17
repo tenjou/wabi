@@ -115,13 +115,13 @@ function updateAttribute(element, name, value)
 	if(firstChar === "$")
 	{
 		const state = name.slice(1)
-
+		
 		if(data.$[state] === undefined) {
 			console.log(`State '${state}' not defined for element:`, element)
 			return
 		}
 
-		data[name] = value
+		data[name] = (value === undefined) ? null : value
 	}
 	else
 	{
