@@ -66,7 +66,7 @@ const elementOpen = function(tag, attributes, key, statics)
 	{
 		const value = attributes[key]
 
-		if(!prevAttributes[key] || prevAttributes[key] !== value) {
+		if(!prevAttributes[key] || prevAttributes[key] !== value || key === "bind") {
 			updateAttribute(node, key, value)
 		}
 	}

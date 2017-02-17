@@ -7,7 +7,7 @@ export {
 } from "./src/elements"
 
 export { 
-	store 
+	store, lastSegment
 } from "./src/store"
 
 export { 

@@ -2,7 +2,8 @@ import { update } from "./router"
 
 const tuple = {
 	data: null,
-	key: null
+	key: null,
+	parentKey: null
 }
 
 class Store
@@ -10,11 +11,12 @@ class Store
 	constructor() {
 		this.data = {}
 		this.watchers = {}
+		this.proxies = {}
 	}
 
 	set(key, value)
 	{
-		proxy({
+		this.dispatch({
 			action: "SET",
 			key,
 			value
@@ -23,7 +25,7 @@ class Store
 
 	add(key, value)
 	{
-		proxy({
+		this.dispatch({
 			action: "ADD",
 			key,
 			value
@@ -32,11 +34,24 @@ class Store
 
 	remove(key, value)
 	{
-		proxy({
+		this.dispatch({
 			action: "REMOVE",
-			key,
-			value
+			key
 		})
+	}
+
+	dispatch(data) 
+	{
+		const index = data.key.indexOf(".")
+		const proxy = (index === -1) ? 
+							this.proxies[data.key] : 
+							this.proxies[data.key.slice(0, index)]
+		if(proxy) {
+			proxy(data)
+		}
+		else {
+			this.handle(data)
+		}
 	}
 
 	performSet(payload)
@@ -45,31 +60,57 @@ class Store
 
 		if(!tuple.key) {
 			this.data = payload.value
+			// TODO: loop through and check if there are watchers.
 		}
-		else {
+		else 
+		{
 			tuple.data[tuple.key] = payload.value
+			this.emit(payload)
+
+			if(tuple.parentKey) {
+				payload.key = tuple.parentKey
+				payload.value = tuple.data
+				this.emit(payload)
+			}
 		}
-		
-		this.emit(payload);
 	}
 
 	performAdd(payload)
 	{
-		// const data = getData(payload.key);
-		// if(!data) { return; }
+		if(!this.getData(payload.key)) { return }
 
-		// const payloadData = payload.data;
+		let array = tuple.data[tuple.key]
+		if(!array) {
+			array = [ payload.value ]
+			tuple.data[tuple.key] = array
+		}
+		else if(!Array.isArray(array)) {
+			console.warn("(store) Data at key '${payload.key}' is not an Array")
+			return
+		}
+		else {
+			array.push(payload.value)
+		}
 
-		// for(let key in payloadData) {
-		// 	data[key] = payloadData[key];
-		// }
-
-		// emit(payload, data);
+		payload.value = array
+		this.emit(payload)
 	}
 
 	performRemove(payload)
 	{
+		if(!this.getData(payload.key)) { return }
 
+		const data = tuple.data
+		if(Array.isArray(data)) {
+			data.splice(parseInt(tuple.key), 1)
+		}
+		else {
+			delete data[tuple.key]
+		}
+
+		payload.value = data
+		payload.key = tuple.parentKey
+		this.emit(payload)
 	}
 
 	handle(data)
@@ -130,10 +171,6 @@ class Store
 		}
 	}
 
-	dispatch(data) {
-		proxy(data)
-	}
-
 	get(key)
 	{
 		if(!key) 
@@ -163,7 +200,8 @@ class Store
 	{
 		if(!key) {
 			tuple.data = this.data
-			tuple.key = null;
+			tuple.key = null
+			tuple.parentKey = null
 			return tuple
 		}
 
@@ -171,17 +209,40 @@ class Store
 		let data = this.data
 
 		const num = buffer.length - 1;
-		for(let n = 0; n < num; n++)
+		if(num === 0)
 		{
-			data = data[buffer[n]]
-			if(!data) {
-				return null
+			tuple.data = data
+			tuple.key = buffer[0]
+			tuple.parentKey = null
+		}
+		else
+		{
+			for(let n = 0; n < num; n++)
+			{
+				const newData = data[buffer[n]]
+				if(!newData) 
+				{
+					for(; n < num; n++) {
+						const newDict = {}
+						data[buffer[n]] = newDict
+						data = newDict
+					}
+					break
+				}
+
+				data = newData
 			}
+
+			tuple.data = data
+			tuple.key = buffer[num]
+			tuple.parentKey = key.slice(0, key.lastIndexOf("."))
 		}
 
-		tuple.data = data
-		tuple.key = buffer[num]
 		return tuple
+	}
+
+	proxy(key, func) {
+		this.proxies[key] = func
 	}
 
 	toJSON() {
@@ -189,18 +250,16 @@ class Store
 	}
 }
 
-const ProxyFunction = (payload) => {
-	store.handle(payload)
-}
-
-const setProxy = (func) => {
-	proxy = func || ProxyFunction
-}
-
-let proxy = ProxyFunction
-
 const store = new Store()
 
+const lastSegment = function(str) 
+{
+	const index = str.lastIndexOf(".")
+	if(index === -1) { return null }
+
+	return str.slice(index + 1)
+}
+
 export { 
-	store, setProxy 
+	store, lastSegment
 }
