@@ -54,25 +54,37 @@ const elementOpen = function(tag, attributes, key, statics)
 
 	const prevAttributes = data.attributes
 
-	// Remove attributes
-	for(let key in prevAttributes) {
-		if(!attributes[key]) {
+	if(attributes)
+	{
+		// Remove attributes
+		for(let key in prevAttributes) {
+			if(!attributes[key]) {
+				updateAttribute(node, key, undefined)
+			}
+		}
+
+		// Update attributes
+		for(let key in attributes) 
+		{
+			const value = attributes[key]
+
+			if(!prevAttributes[key] || prevAttributes[key] !== value || key === "bind") {
+				updateAttribute(node, key, value)
+			}
+		}
+
+		data.attributes = attributes
+	}
+	else 
+	{
+		// Remove attributes
+		for(let key in prevAttributes) {
 			updateAttribute(node, key, undefined)
 		}
+
+		data.attributes = {}
 	}
-
-	// Update attributes
-	for(let key in attributes) 
-	{
-		const value = attributes[key]
-
-		if(!prevAttributes[key] || prevAttributes[key] !== value || key === "bind") {
-			updateAttribute(node, key, value)
-		}
-	}
-
-	data.attributes = attributes || {}
-
+	
 	if(data.render)
 	{
 		if(renderText) {
