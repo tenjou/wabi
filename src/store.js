@@ -43,23 +43,26 @@ class Store
 	dispatch(data) 
 	{
 		const globalProxy = this.proxies[""]
-		if(globalProxy) 
-		{
-			globalProxy(data)
-			if(!data.key) {
-				return
-			}
-		}
 
 		const index = data.key.indexOf(".")
 		const proxy = (index === -1) ? 
-							this.proxies[data.key] : 
-							this.proxies[data.key.slice(0, index)]
-		if(proxy) {
+						this.proxies[data.key] : 
+						this.proxies[data.key.slice(0, index)]
+		if(proxy) 
+		{
+			if(globalProxy) {
+				globalProxy(data)
+			}
 			proxy(data)
 		}
-		else {
-			this.handle(data)
+		else 
+		{
+			if(globalProxy) {
+				globalProxy(data)
+			}
+			else {
+				this.handle(data)
+			}
 		}
 	}
 
@@ -76,10 +79,14 @@ class Store
 			tuple.data[tuple.key] = payload.value
 			this.emit(payload)
 
-			if(tuple.parentKey) {
-				payload.key = tuple.parentKey
-				payload.value = tuple.data
-				this.emit(payload)
+			if(tuple.parentKey) 
+			{
+				const emitPayload = {
+					action: payload.action,
+					key: tuple.parentKey,
+					value: tuple.data
+				}
+				this.emit(emitPayload)
 			}
 		}
 	}
@@ -101,8 +108,12 @@ class Store
 			array.push(payload.value)
 		}
 
-		payload.value = array
-		this.emit(payload)
+		const emitPayload = {
+			action: payload.action,
+			key: tuple.key,
+			value: array
+		}
+		this.emit(emitPayload)
 	}
 
 	performRemove(payload)
@@ -117,9 +128,12 @@ class Store
 			delete data[tuple.key]
 		}
 
-		payload.value = data
-		payload.key = tuple.parentKey
-		this.emit(payload)
+		const emitPayload = {
+			action: payload.action,
+			key: tuple.parentKey,
+			value: data
+		}
+		this.emit(emitPayload)
 	}
 
 	handle(data)
