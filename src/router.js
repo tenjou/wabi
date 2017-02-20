@@ -8,9 +8,10 @@ let currRoute = null
 let currRouteResult = null
 let url = null
 
-function Route(regexp, renderFunc) {
+function Route(regexp, renderFunc, updateFunc) {
 	this.regexp = new RegExp(regexp)
 	this.renderFunc = renderFunc
+	this.updateFunc = updateFunc
 }
 
 const patchFunc = function(func) {
@@ -47,8 +48,12 @@ const updateRoute = function()
 	{
 		const routeItem = routes[n]
 		currRouteResult = routeItem.regexp.exec(url)
-		if(currRouteResult) {
+		if(currRouteResult) 
+		{
 			currRoute = routeItem
+			if(currRoute.updateFunc) {
+				currRoute.updateFunc(currRouteResult)
+			}
 			break
 		}
 	}
@@ -61,8 +66,8 @@ const updateRoute = function()
 	needUpdateRoute = false
 }
 
-const route = function(regexp, renderFunc) {
-	routes.push(new Route(regexp, renderFunc))
+const route = function(regexp, renderFunc, updateFunc) {
+	routes.push(new Route(regexp, renderFunc, updateFunc))
 	needUpdateRoute = true
 }
 
