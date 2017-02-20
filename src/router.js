@@ -5,7 +5,7 @@ let dirty = false
 let needUpdateRoute = false
 let routes = []
 let currRoute = null
-let currRouteResult = null
+let currRouteResult = []
 let url = null
 
 function Route(regexp, renderFunc, updateFunc) {
@@ -43,12 +43,18 @@ const update = function() {
 const updateRoute = function() 
 {
 	url = document.location.pathname + document.location.hash
+	currRouteResult.length = 0
 
+	let result
 	for(let n = 0; n < routes.length; n++)
 	{
 		const routeItem = routes[n]
-		currRouteResult = routeItem.regexp.exec(url)
-		if(currRouteResult) 
+		const regex = new RegExp(routeItem.regexp, "g")
+		while(result = regex.exec(url)) {
+			currRouteResult.push(result)
+		}
+
+		if(currRouteResult.length > 0)
 		{
 			currRoute = routeItem
 			if(currRoute.updateFunc) {
