@@ -42,6 +42,15 @@ class Store
 
 	dispatch(data) 
 	{
+		const globalProxy = this.proxies[""]
+		if(globalProxy) 
+		{
+			globalProxy(data)
+			if(!data.key) {
+				return
+			}
+		}
+
 		const index = data.key.indexOf(".")
 		const proxy = (index === -1) ? 
 							this.proxies[data.key] : 
