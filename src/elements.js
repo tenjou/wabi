@@ -136,40 +136,48 @@ const componentVoid = function(component, attributes, key)
 		data = nextComponentStart(component)
 		data.key = key
 
-		if(attributes) 
-		{
-			data.parentAttributes = attributes
-
-			for(let key in attributes)
-			{
-				if(key[0] === "$") 
-				{
-					const state = key.slice(1)
-
-					if(data.$[state] === undefined) {
-						console.log(`State '${state}' not defined for component:`, component)
-						return
-					}
-
-					data[key] = attributes[key]
-				}
-			}
-
-			if(attributes.bind) {
-				data.bind = attributes.bind
-				data.attributes.bind = attributes.bind
-			}
-		}
+		assignAttributes(data, attributes)
 		
 		if(data.setup) {
 			data.setup()
 		}
+	}
+	else {
+		assignAttributes(data, attributes)
 	}
 
 	data.render()
 	nextComponentEnd()
 
 	return data
+}
+
+const assignAttributes = function(data, attributes)
+{
+	if(attributes) 
+	{
+		data.parentAttributes = attributes
+
+		for(let key in attributes)
+		{
+			if(key[0] === "$") 
+			{
+				const state = key.slice(1)
+
+				if(data.$[state] === undefined) {
+					console.log(`State '${state}' not defined for component:`, component)
+					return
+				}
+
+				data[key] = attributes[key]
+			}
+		}
+
+		if(attributes.bind) {
+			data.bind = attributes.bind
+			data.attributes.bind = attributes.bind
+		}
+	}
 }
 
 const text = function(value, formatFunc)
@@ -199,6 +207,5 @@ export {
 	elementOpen,
 	elementClose,
 	elementVoid,
-	componentVoid,
-	text
+	componentVoid
 }

@@ -11,10 +11,10 @@ const component = function(componentProto)
 
 	const proto = Object.create(NodeData.prototype);
 
-	for(let key in componentProto) 
+	for(let key in componentProto)
 	{
 		const param = Object.getOwnPropertyDescriptor(componentProto, key);
-		if(param.get || param.set) { 
+		if(param.get || param.set) {
 			Object.defineProperty(proto, key, param);
 		}
 		else {
@@ -23,7 +23,7 @@ const component = function(componentProto)
 	}
 
 	const states = proto.state
-	for(let key in states) 
+	for(let key in states)
 	{
 		Object.defineProperty(proto, "$" + key,
 		{
@@ -46,7 +46,7 @@ const component = function(componentProto)
 	return Component
 }
 
-function NodeData(nodeName, key) 
+function NodeData(nodeName, key)
 {
 	this.attributes = Object.create(null)
 	this.parentAttributes = null
@@ -69,6 +69,8 @@ function NodeData(nodeName, key)
 	 * {!Object<string, !Element>}
 	 */
 	this.keyMap = Object.create(null);
+
+	this.bindFuncs = Object.create(null)
 
 	/**
 	 * Whether or not the keyMap is currently valid.
@@ -96,16 +98,28 @@ function NodeData(nodeName, key)
 	this.$ = currState;
 }
 
-NodeData.prototype = 
+NodeData.prototype =
 {
 	state: {
 		value: null
 	},
 
-	remove() 
+	remove()
 	{
-		if(this.attributes.bind) {
-			store.unwatch(this.attributes.bind, this)
+		const bindings = this.attributes.bind
+		if(bindings)
+		{
+			if(typeof bindings === "string") {
+				store.unwatch(bindings, this.bindFuncs.value)
+			}
+			else
+			{
+				for(let key in bindings) {
+					store.unwatch(bindings[key], this.bindFuncs[key])
+				}
+			}
+
+			this.bindFuncs = null
 		}
 	},
 
@@ -113,8 +127,29 @@ NodeData.prototype =
 	{
 		if(this.$[state] === value) { return }
 
-		if(state === "value" && this.attributes.bind) {
-			store.set(this.attributes.bind, value)
+		if(this.attributes.bind)
+		{
+			if(typeof this.attributes.bind === "string")
+			{
+				if(state === "value") {
+					store.set(this.attributes.bind, value)
+				}
+				else {
+					this.$[state] = value
+					update()
+				}
+			}
+			else
+			{
+				const binding = this.attributes.bind[state]
+				if(binding) {
+					store.set(binding, value)
+				}
+				else {
+					this.$[state] = value
+					update()
+				}
+			}
 		}
 		else {
 			this.$[state] = value
@@ -130,22 +165,86 @@ NodeData.prototype =
 		return this.$.value
 	},
 
-	handleAction(payload) {
-		this.$.value = payload.value
+	handleAction(state, value) {
+		this.$[state] = value
 		update()
 	},
 
-	set bind(value) 
+	set bind(value)
 	{
-		if(this.attributes.bind) {
-			store.unwatch(this.attributes.bind, this)
-		}
+		const prevBind = this.attributes.bind
 
-		if(value) {
-			store.watch(value, this)
+		if(prevBind)
+		{
+			if(value)
+			{
+				if(typeof prevBind === "string")
+				{
+					if(prevBind !== value) {
+						const func = this.bindFuncs.value
+						store.unwatch(prevBind, func)
+						store.watch(value, func)
+						this.$.value = store.get(value)
+					}
+				}
+				else
+				{
+					for(let key in prevBind)
+					{
+						const bindPath = value[key]
+						if(prevBind[key] !== bindPath)
+						{
+							const func = this.bindFuncs[key]
+							store.unwatch(prevBind[key], func)
+							store.watch(bindPath, func)
+							this.$[key] = store.get(bindPath)
+						}
+					}
+				}
+			}
+			else
+			{
+				if(typeof prevBind === "string") {
+					store.unwatch(prevBind, this.bindFuncs.value)
+					this.$.value = this.state.value
+				}
+				else
+				{
+					for(let key in prevBind) {
+						store.unwatch(prevBind[key], this.bindFuncs[key])
+						delete this.bindFuncs[key]
+						this.$[key] = this.state[key]
+					}
+				}
+			}
 		}
+		else
+		{
+			if(typeof value === "string")
+			{
+				const func = (payload) => {
+					this.handleAction("value", payload.value)
+				}
 
-		this.$.value = store.get(value)
+				this.bindFuncs.value = func
+				store.watch(value, func)
+				this.$.value = store.get(value)
+			}
+			else
+			{
+				for(let key in value)
+				{
+					const bindValue = value[key]
+					const func = (payload) => {
+						this.handleAction(key, payload.value)
+					}
+
+					this.bindFuncs[key] = func
+					store.watch(bindValue, func)
+					this.$[key] = store.get(bindValue)
+				}
+			}
+		}
 	},
 
 	get bind() {
@@ -175,7 +274,7 @@ const getData = function(node) {
 	return node.metaData
 }
 
-const importNode = function(node) 
+const importNode = function(node)
 {
 	if(node.metaData) {
 		return

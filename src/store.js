@@ -70,9 +70,21 @@ class Store
 	{
 		if(!this.getData(payload.key)) { return }
 
-		if(!tuple.key) {
+		if(!tuple.key)
+		{
 			this.data = payload.value
-			// TODO: loop through and check if there are watchers.
+
+			for(let key in this.watchers)
+			{
+				const value = this.get(key)
+
+				const emitPayload = {
+					action: "SET",
+					key: key,
+					value: value
+				}
+				this.emit(emitPayload)
+			}
 		}
 		else 
 		{
@@ -190,7 +202,7 @@ class Store
 		if(!buffer) { return }
 
 		for(let n = 0; n < buffer.length; n++) {
-			buffer[n].handleAction(payload)
+			buffer[n](payload)
 		}
 	}
 
@@ -211,7 +223,7 @@ class Store
 		for(let n = 0; n < buffer.length; n++)
 		{
 			data = data[buffer[n]]
-			if(!data) {
+			if(data === undefined) {
 				return null
 			}
 		}

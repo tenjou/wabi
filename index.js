@@ -2,8 +2,7 @@ export {
 	elementOpen,
 	elementClose,
 	elementVoid,
-	componentVoid,
-	text
+	componentVoid
 } from "./src/elements"
 
 export { 
