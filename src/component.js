@@ -184,8 +184,9 @@ NodeData.prototype =
 						const func = this.bindFuncs.value
 						store.unwatch(prevBind, func)
 						store.watch(value, func)
-						this.$.value = store.get(value)
-					}
+					}	
+					
+					this.$.value = store.get(value)
 				}
 				else
 				{
