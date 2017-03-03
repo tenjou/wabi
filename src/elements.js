@@ -58,7 +58,7 @@ const elementOpen = function(tag, attributes, key, statics)
 	{
 		// Remove attributes
 		for(let key in prevAttributes) {
-			if(!attributes[key]) {
+			if(attributes[key] === undefined) {
 				updateAttribute(node, key, undefined)
 			}
 		}
@@ -68,7 +68,7 @@ const elementOpen = function(tag, attributes, key, statics)
 		{
 			const value = attributes[key]
 
-			if(!prevAttributes[key] || prevAttributes[key] !== value || key === "bind") {
+			if(prevAttributes[key] === undefined || prevAttributes[key] !== value || key === "bind") {
 				updateAttribute(node, key, value)
 			}
 		}
