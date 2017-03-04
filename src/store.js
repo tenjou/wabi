@@ -255,14 +255,8 @@ class Store
 			for(let n = 0; n < num; n++)
 			{
 				const newData = data[buffer[n]]
-				if(!newData) 
-				{
-					for(; n < num; n++) {
-						const newDict = {}
-						data[buffer[n]] = newDict
-						data = newDict
-					}
-					break
+				if(!newData) {
+					return null
 				}
 
 				data = newData
