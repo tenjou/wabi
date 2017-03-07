@@ -48,14 +48,10 @@ const component = function(componentProto)
 
 function NodeData(nodeName, key)
 {
+	this.nodeName = nodeName
 	this.attributes = Object.create(null)
 	this.parentAttributes = null
-
-	/**
-	 * Whether or not the statics have been applied for the node yet.
-	 * {boolean}
-	 */
-	this.staticsApplied = false;
+	this.staticsApplied = false
 
 	/**
 	 * The key used to identify this node, used to preserve DOM nodes when they
@@ -79,17 +75,10 @@ function NodeData(nodeName, key)
 	this.keyMapValid = true;
 
 	/**
-	 * Whether or the associated node is, or contains, a focused Element.
-	 * @type {boolean}
-	 */
-	this.focused = false;
-
-	/**
 	 * The node name for this node.
 	 * @const {string}
 	 */
-	this.nodeName = nodeName;
-
+	
 	const currState = {}
 	for(let key in this.state) {
 		currState[key] = this.state[key]

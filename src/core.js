@@ -10,42 +10,14 @@ import {
 	setInSkip
 } from './assertions';
 import { getFocusedPath, moveBefore } from './utils';
-import { patchFunc } from "./router";
+import { patchFunc, ready } from "./router";
 
 let currentNode = null;
 let currentParent = null;
 let doc = null;
 
-
-/**
- * @param {!Array<Node>} focusPath The nodes to mark.
- * @param {boolean} focused Whether or not they are focused.
- */
-const markFocused = function(focusPath, focused) {
-	for (let i = 0; i < focusPath.length; i += 1) {
-		getData(focusPath[i]).focused = focused;
-	}
-};
-
-
-/**
- * Returns a patcher function that sets up and restores a patch context,
- * running the run function with the provided data.
- * @param {function((!Element|!DocumentFragment),!function(T),T=): ?Node} run
- * @return {function((!Element|!DocumentFragment),!function(T),T=): ?Node}
- * @template T
- */
 const patchFactory = function(run) {
-	/**
-	 * TODO(moz): These annotations won't be necessary once we switch to Closure
-	 * Compiler's new type inference. Remove these once the switch is done.
-	 *
-	 * @param {(!Element|!DocumentFragment)} node
-	 * @param {!function(T)} fn
-	 * @param {T=} data
-	 * @return {?Node} node
-	 * @template T
-	 */
+
 	const f = function(node, fn, data) {
 		const prevDoc = doc;
 		const prevCurrentNode = currentNode;
@@ -61,10 +33,7 @@ const patchFactory = function(run) {
 			previousInSkip = setInSkip(false);
 		}
 
-		const focusPath = getFocusedPath(node, currentParent);
-		markFocused(focusPath, true);
-		const retVal = run(node, fn, data);
-		markFocused(focusPath, false);
+        const retVal = run(node, fn, data);
 
 		if (process.env.NODE_ENV !== 'production') {
 			assertVirtualAttributesClosed();
@@ -82,32 +51,26 @@ const patchFactory = function(run) {
 };
 
 
-/**
- * Patches the document starting at node with the provided function. This
- * function may be called during an existing patch operation.
- * @param {!Element|!DocumentFragment} node The Element or Document
- *     to patch.
- * @param {!function(T)} fn A function containing elementOpen/elementClose/etc.
- *     calls that describe the DOM.
- * @param {T=} data An argument passed to fn to represent DOM state.
- * @return {!Node} The patched node.
- * @template T
- */
 const patchInner = patchFactory(function(node, fn, data) {
-	currentNode = node;
 
-	enterNode();
-	fn(data);
-	exitNode();
+	if(!currentParent) {
+		return null
+	}
 
-	if (process.env.NODE_ENV !== 'production') {
+	currentNode = node
+
+	enterNode()
+	fn(data)
+	exitNode()
+
+	if(process.env.NODE_ENV !== 'production') {
 		assertNoUnclosedTags(currentNode, node);
 	}
 
-	return node;
+	return node
 });
 
-patchFunc(patchInner);
+patchFunc(patchInner)
 
 /**
  * Patches an Element with the the provided function. Exactly one top level

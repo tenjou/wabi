@@ -10,7 +10,7 @@ export {
 } from "./src/store"
 
 export { 
-	route, update 
+	route, clearRoutes, update 
 } from "./src/router"
 
 export {

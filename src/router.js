@@ -26,11 +26,15 @@ const render = function()
 
 	if(dirty) 
 	{
-		if(currRoute && currRoute.renderFunc) {
-			_patchFunc(document.body, currRoute.renderFunc, currRouteResult)
+		if(currRoute && currRoute.renderFunc) 
+		{
+			if(_patchFunc(document.body, currRoute.renderFunc, currRouteResult)) {
+				dirty = false
+			}
 		}
-
-		dirty = false
+		else {
+			dirty = false
+		}
 	}
 
 	window.requestAnimationFrame(render)
@@ -77,6 +81,11 @@ const route = function(regexp, renderFunc, updateFunc) {
 	needUpdateRoute = true
 }
 
+const clearRoutes = function() {
+	routes.length = 0
+	needUpdateRoute = true
+}
+
 window.addEventListener("hashchange", () => {
 	updateRoute()
 })
@@ -86,5 +95,6 @@ render()
 export {
 	patchFunc,
 	update,
-	route
+	route,
+	clearRoutes
 }
