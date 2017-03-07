@@ -93,7 +93,7 @@ function updateAttribute(element, name, value)
 			return
 		}
 
-		data[name] = (value === undefined) ? null : value
+		data[name] = (value === undefined) ? data.state[state] : value
 	}
 	else
 	{

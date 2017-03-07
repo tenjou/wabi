@@ -198,8 +198,9 @@ NodeData.prototype =
 							const func = this.bindFuncs[key]
 							store.unwatch(prevBind[key], func)
 							store.watch(bindPath, func)
-							this.$[key] = store.get(bindPath)
 						}
+
+						this.$[key] = store.get(bindPath)
 					}
 				}
 			}
