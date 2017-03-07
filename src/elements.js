@@ -45,7 +45,7 @@ const elementOpen = function(tag, attributes, key, statics)
 		if(attributes) 
 		{
 			renderText = (attributes.$value !== undefined | attributes.bind !== undefined)
-			attributes = Object.assign(attributes, data.parentAttributes)
+			attributes = Object.assign(data.parentAttributes, attributes)
 		}
 		else {
 			attributes = data.parentAttributes
@@ -68,7 +68,11 @@ const elementOpen = function(tag, attributes, key, statics)
 		{
 			const value = attributes[key]
 
-			if(prevAttributes[key] === undefined || prevAttributes[key] !== value || key === "bind") {
+			if(prevAttributes[key] === undefined || 
+			   prevAttributes[key] !== value ||
+			   (key[0] === "$" && data.$[key] !== value) ||
+			   key === "bind") 
+			{
 				updateAttribute(node, key, value)
 			}
 		}

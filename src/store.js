@@ -14,12 +14,13 @@ class Store
 		this.proxies = {}
 	}
 
-	set(key, value)
+	set(key, value, force)
 	{
 		this.dispatch({
 			action: "SET",
 			key,
-			value
+			value,
+			force
 		})
 	}
 
@@ -40,22 +41,22 @@ class Store
 		})
 	}
 
-	dispatch(data) 
+	dispatch(data)
 	{
 		const globalProxy = this.proxies[""]
 
 		const index = data.key.indexOf(".")
-		const proxy = (index === -1) ? 
-						this.proxies[data.key] : 
+		const proxy = (index === -1) ?
+						this.proxies[data.key] :
 						this.proxies[data.key.slice(0, index)]
-		if(proxy) 
+		if(proxy)
 		{
 			if(globalProxy) {
 				globalProxy(data)
 			}
 			proxy(data)
 		}
-		else 
+		else
 		{
 			if(globalProxy) {
 				globalProxy(data)
@@ -68,7 +69,7 @@ class Store
 
 	performSet(payload)
 	{
-		if(!this.getData(payload.key)) { return }
+		if(!this.getData(payload.key, payload.force)) { return }
 
 		if(!tuple.key)
 		{
@@ -86,12 +87,12 @@ class Store
 				this.emit(emitPayload)
 			}
 		}
-		else 
+		else
 		{
 			tuple.data[tuple.key] = payload.value
 			this.emit(payload)
 
-			if(tuple.parentKey) 
+			if(tuple.parentKey)
 			{
 				const emitPayload = {
 					action: payload.action,
@@ -208,7 +209,7 @@ class Store
 
 	get(key)
 	{
-		if(!key) 
+		if(!key)
 		{
 			if(key === undefined) {
 				return ""
@@ -231,7 +232,7 @@ class Store
 		return data
 	}
 
-	getData(key)
+	getData(key, force)
 	{
 		if(!key) {
 			tuple.data = this.data
@@ -255,8 +256,22 @@ class Store
 			for(let n = 0; n < num; n++)
 			{
 				const newData = data[buffer[n]]
-				if(!newData) {
-					return null
+				if(!newData)
+				{
+					if(!force) {
+						console.warn(`(store.getData) No data available with key: [${buffer[n]}] in address: [${key}]`)
+						return null
+					}
+					else
+					{
+						for(; n < num; n++) {
+							const newDict = {}
+							data[buffer[n]] = newDict
+							data = newDict
+						}
+						break
+					}
+
 				}
 
 				data = newData
@@ -281,7 +296,7 @@ class Store
 
 const store = new Store()
 
-const lastSegment = function(str) 
+const lastSegment = function(str)
 {
 	const index = str.lastIndexOf(".")
 	if(index === -1) { return null }
@@ -289,6 +304,6 @@ const lastSegment = function(str)
 	return str.slice(index + 1)
 }
 
-export { 
+export {
 	store, lastSegment
 }

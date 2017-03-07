@@ -1,46 +1,18 @@
-import { getData } from "./component";
+import { getData } from "./component"
 
-const getNamespace = function(name) {
-	if(name.lastIndexOf("xml:", 0) === 0) {
-		return "http://www.w3.org/XML/1998/namespace";
-	}
-
-	if(name.lastIndexOf("xlink:", 0) === 0) {
-		return "http://www.w3.org/1999/xlink";
+const applyAttr = function(element, name, value) 
+{
+	if(value == null) {
+		element.removeAttribute(name)
+	} 
+	else {
+		element.setAttribute(name, value)
 	}
 }
 
-/**
- * Applies an attribute or property to a given Element. If the value is null
- * or undefined, it is removed from the Element. Otherwise, the value is set
- * as an attribute.
- * @param {!Element} el
- * @param {string} name The attribute's name.
- * @param {?(boolean|number|string)=} value The attribute's value.
- */
-const applyAttr = function(el, name, value) {
-  if (value == null) {
-	el.removeAttribute(name);
-  } else {
-	const attrNS = getNamespace(name);
-	if (attrNS) {
-	  el.setAttributeNS(attrNS, name, value);
-	} else {
-	  el.setAttribute(name, value);
-	}
-  }
-};
-
-/**
- * Applies a property to a given Element.
- * @param {!Element} el
- * @param {string} name The property's name.
- * @param {*} value The property's value.
- */
 const applyProp = function(el, name, value) {
   el[name] = value;
 };
-
 
 /**
  * Applies a value to a style declaration. Supports CSS custom properties by
