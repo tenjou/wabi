@@ -223,7 +223,14 @@ class Store
 
 		for(let n = 0; n < buffer.length; n++)
 		{
-			data = data[buffer[n]]
+			const id = buffer[n]
+			if(id === "@") {
+				return buffer[n - 1]
+			}
+			else {
+				data = data[id]
+			}
+			
 			if(data === undefined) {
 				return null
 			}
