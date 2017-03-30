@@ -1,4 +1,4 @@
-import { getData, initData } from "./component";
+import { getData, initData, haveNextComponent } from "./component";
 import {
 	assertInPatch,
 	assertNoUnclosedTags,
@@ -110,17 +110,11 @@ const patchOuter = patchFactory(function(node, fn, data) {
 });
 
 
-/**
- * Checks whether or not the current node matches the specified nodeName and
- * key.
- *
- * @param {!Node} matchNode A node to match the data to.
- * @param {?string} nodeName The nodeName for this node.
- * @param {?string=} key An optional key that identifies a node.
- * @return {boolean} True if the node matches, false otherwise.
- */
-const matches = function(matchNode, nodeName, key) {
-	const data = getData(matchNode);
+const matches = function(matchNode, nodeName, key) 
+{
+	if(haveNextComponent()) { return false }
+
+	const data = getData(matchNode)
 
 	// Key check is done using double equals as we want to treat a null key the
 	// same as undefined. This should be okay as the only values allowed are

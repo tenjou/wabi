@@ -260,7 +260,8 @@ const initData = function(node, nodeName, key)
 	return data
 }
 
-const getData = function(node) {
+const getData = function(node) 
+{
 	importNode(node)
 	return node.metaData
 }
@@ -312,11 +313,16 @@ const nextComponentEnd = function() {
 	nextComponent = null
 }
 
+const haveNextComponent = function() {
+	return nextComponent
+}
+
 export {
 	getData,
 	initData,
 	importNode,
 	component,
 	nextComponentStart,
-	nextComponentEnd
+	nextComponentEnd,
+	haveNextComponent
 }
