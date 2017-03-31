@@ -226,6 +226,8 @@ NodeData.prototype =
 				for(let key in value)
 				{
 					const bindValue = value[key]
+					if(!bindValue) { continue }
+
 					const func = (payload) => {
 						this.handleAction(key, payload.value)
 					}

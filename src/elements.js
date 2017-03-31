@@ -35,7 +35,7 @@ const elementOpen = function(tag, attributes, key, statics)
 			updateAttribute(node, key, statics[key])
 		}
 
-		data.staticsApplied = true;
+		data.staticsApplied = true
 	}
 
 	let renderText = (attributes && attributes.$value) ? true : false
