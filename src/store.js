@@ -41,6 +41,15 @@ class Store
 		})
 	}
 
+	create(key, value)
+	{
+		this.dispatch({
+			action: "CREATE",
+			key,
+			value
+		})
+	}
+
 	dispatch(data)
 	{
 		const globalProxy = this.proxies[""]
@@ -149,21 +158,44 @@ class Store
 		this.emit(emitPayload)
 	}
 
+	performCreate(payload)
+	{
+		if(!this.getData(payload.key, true)) { return }
+
+		if(!tuple.data[tuple.key]) {
+			tuple.data[tuple.key] = payload.value
+		}
+		
+		// if(tuple.parentKey)
+		// {
+		// 	const emitPayload = {
+		// 		action: payload.action,
+		// 		key: tuple.parentKey,
+		// 		value: tuple.data
+		// 	}
+		// 	this.emit(emitPayload)
+		// }
+	}
+
 	handle(data)
 	{
 		switch(data.action)
 		{
 			case "SET":
 				this.performSet(data)
-				break;
+				break
 
 			case "ADD":
 				this.performAdd(data)
-				break;
+				break
 
 			case "REMOVE":
 				this.performRemove(data)
-				break;
+				break
+
+			case "CREATE":
+				this.performCreate(data)
+				break
 		}
 	}
 
