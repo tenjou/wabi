@@ -32,7 +32,7 @@ const elementOpen = function(tag, attributes, key, statics)
 	if(statics && !data.staticsApplied)
 	{
 		for(let key in statics) {
-			updateAttribute(node, key, statics[key])
+			updateAttribute(node, key, statics[key], true)
 		}
 
 		data.staticsApplied = true
@@ -76,8 +76,6 @@ const elementOpen = function(tag, attributes, key, statics)
 				updateAttribute(node, key, value)
 			}
 		}
-
-		data.attributes = attributes
 	}
 	else 
 	{

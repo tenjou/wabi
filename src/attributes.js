@@ -78,7 +78,7 @@ const applyAttributeTyped = function(el, name, value) {
 };
 
 
-function updateAttribute(element, name, value)
+function updateAttribute(element, name, value, skip)
 {
 	const data = getData(element)
 	const attrs = data.attributes
@@ -99,6 +99,10 @@ function updateAttribute(element, name, value)
 	{
 		const mutator = attributes[name] || applyAttributeTyped
 		mutator(element, name, value)
+	}
+
+	if(!skip) {
+		data.attributes[name] = value
 	}
 }
 

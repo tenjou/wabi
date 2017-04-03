@@ -121,7 +121,7 @@ NodeData.prototype =
 			if(typeof this.attributes.bind === "string")
 			{
 				if(state === "value") {
-					store.set(this.attributes.bind, value)
+					store.set(this.attributes.bind, value, true)
 				}
 				else {
 					this.$[state] = value
@@ -132,7 +132,7 @@ NodeData.prototype =
 			{
 				const binding = this.attributes.bind[state]
 				if(binding) {
-					store.set(binding, value)
+					store.set(binding, value, true)
 				}
 				else {
 					this.$[state] = value
