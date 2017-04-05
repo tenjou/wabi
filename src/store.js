@@ -106,7 +106,9 @@ class Store
 				const emitPayload = {
 					action: payload.action,
 					key: tuple.parentKey,
-					value: tuple.data
+					value: tuple.data,
+					changedKey: tuple.key,
+					changedValue: payload.value
 				}
 				this.emit(emitPayload)
 			}

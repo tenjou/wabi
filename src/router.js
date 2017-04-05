@@ -92,7 +92,7 @@ window.addEventListener("hashchange", () => {
 
 render()
 
-export {
+export default {
 	patchFunc,
 	update,
 	route,
