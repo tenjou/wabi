@@ -1,6 +1,6 @@
 {
 	"name": "wabi",
-	"version": "0.5.9",
+	"version": "0.5.10",
 	"description": "Small yet an efficient JavaScript library for building UI with data binding.",
 	"author": "Arturs Šefers <arthur.der.shefer@gmail.com>",
 	"repository": {
