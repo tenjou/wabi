@@ -160,6 +160,11 @@ const assignAttributes = function(data, attributes)
 	{
 		data.parentAttributes = attributes
 
+		if(attributes.bind) {
+			data.bind = attributes.bind
+			data.attributes.bind = attributes.bind
+		}
+
 		for(let key in attributes)
 		{
 			if(key[0] === "$") 
@@ -167,17 +172,12 @@ const assignAttributes = function(data, attributes)
 				const state = key.slice(1)
 
 				if(data.$[state] === undefined) {
-					console.log(`State '${state}' not defined for component:`, component)
+					console.log(`State '${state}' not defined for component:`, data)
 					return
 				}
 
 				data[key] = attributes[key]
 			}
-		}
-
-		if(attributes.bind) {
-			data.bind = attributes.bind
-			data.attributes.bind = attributes.bind
 		}
 	}
 }
