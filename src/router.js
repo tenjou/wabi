@@ -47,6 +47,9 @@ const update = function() {
 const updateRoute = function() 
 {
 	url = document.location.hash
+	if(!url) {
+		url = "/"
+	}
 	currRouteResult.length = 0
 
 	let result
