@@ -46,7 +46,7 @@ const update = function() {
 
 const updateRoute = function() 
 {
-	url = document.location.pathname + document.location.hash
+	url = document.location.hash
 	currRouteResult.length = 0
 
 	let result
