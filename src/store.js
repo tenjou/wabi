@@ -19,7 +19,7 @@ class Store
 		this.watchers = {}
 
 		this.proxies = []
-		this.globalProxy = []
+		this.globalProxy = null
 	}
 
 	set(key, value, force)
