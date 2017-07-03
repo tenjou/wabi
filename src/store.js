@@ -6,12 +6,20 @@ const tuple = {
 	parentKey: null
 }
 
+function Proxy(key, func) {
+	this.key = key
+	this.func = func
+}
+
 class Store
 {
-	constructor() {
+	constructor() 
+	{
 		this.data = {}
 		this.watchers = {}
-		this.proxies = {}
+
+		this.proxies = []
+		this.globalProxy = []
 	}
 
 	set(key, value, force)
@@ -52,28 +60,19 @@ class Store
 
 	dispatch(data)
 	{
-		const globalProxy = this.proxies[""]
+		if(this.globalProxy) {
+			this.globalProxy(data)
+		}
 
-		const index = data.key.indexOf(".")
-		const proxy = (index === -1) ?
-						this.proxies[data.key] :
-						this.proxies[data.key.slice(0, index)]
-		if(proxy)
-		{
-			if(globalProxy) {
-				globalProxy(data)
-			}
-			proxy(data)
-		}
-		else
-		{
-			if(globalProxy) {
-				globalProxy(data)
-			}
-			else {
-				this.handle(data)
+		for(let n = 0; n < this.proxies.length; n++) {
+			const proxy = this.proxies[n]
+			if(data.key.indexOf(proxy.key) !== -1) {
+				proxy.func(data)
+				return
 			}
 		}
+
+		this.handle(data)
 	}
 
 	performSet(payload)
@@ -327,8 +326,30 @@ class Store
 		return tuple
 	}
 
-	proxy(key, func) {
-		this.proxies[key] = func
+	proxy(key, func) 
+	{
+		if(key === "") 
+		{
+			if(this.globalProxy) {
+				console.warn("(wabi.proxy) There is already global proxy declared")
+				return
+			}
+
+			this.globalProxy = func
+		}
+		else 
+		{
+			for(let n = 0; n < this.proxies.length; n++) {
+				const proxy = this.proxies[n]
+				if(proxy.key === key) {
+					console.warn("(wabi.proxy) There is already a proxy declared with key:", key)
+					return
+				}
+			}
+			
+			const proxy = new Proxy(key, func)
+			this.proxies.push(proxy)
+		}
 	}
 
 	toJSON() {
