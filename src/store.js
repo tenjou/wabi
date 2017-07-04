@@ -63,6 +63,9 @@ class Store
 		if(this.globalProxy) {
 			this.globalProxy(data)
 		}
+		else {
+			this.handle(data)
+		}
 
 		for(let n = 0; n < this.proxies.length; n++) {
 			const proxy = this.proxies[n]
@@ -71,8 +74,6 @@ class Store
 				return
 			}
 		}
-
-		this.handle(data)
 	}
 
 	performSet(payload)
