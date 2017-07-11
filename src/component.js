@@ -93,8 +93,14 @@ NodeData.prototype =
 		value: null
 	},
 
+	unmount: null,
+
 	remove()
 	{
+		if(this.unmount) {
+			this.unmount()
+		}
+
 		const bindings = this.attributes.bind
 		if(bindings)
 		{
