@@ -17,9 +17,7 @@ class Store
 	{
 		this.data = {}
 		this.watchers = {}
-
 		this.proxies = []
-		this.globalProxy = null
 	}
 
 	set(key, value, force)
@@ -71,7 +69,6 @@ class Store
 			const proxy = this.proxies[n]
 			if(data.key.indexOf(proxy.key) !== -1) {
 				proxy.func(data)
-				return
 			}
 		}
 	}
@@ -152,6 +149,8 @@ class Store
 			delete data[tuple.key]
 		}
 
+		this.emit(payload)
+
 		const emitPayload = {
 			action: payload.action,
 			key: tuple.parentKey,
@@ -168,34 +167,20 @@ class Store
 		if(!tuple.data[tuple.key]) {
 			tuple.data[tuple.key] = payload.value
 		}
-		
-		// if(tuple.parentKey)
-		// {
-		// 	const emitPayload = {
-		// 		action: payload.action,
-		// 		key: tuple.parentKey,
-		// 		value: tuple.data
-		// 	}
-		// 	this.emit(emitPayload)
-		// }
 	}
 
 	handle(data)
 	{
-		switch(data.action)
-		{
-			case "SET":
+		switch(data.action) {
+			case "SET": 
 				this.performSet(data)
 				break
-
 			case "ADD":
 				this.performAdd(data)
 				break
-
 			case "REMOVE":
 				this.performRemove(data)
 				break
-
 			case "CREATE":
 				this.performCreate(data)
 				break
@@ -327,7 +312,7 @@ class Store
 		return tuple
 	}
 
-	proxy(key, func) 
+	addProxy(key, func) 
 	{
 		if(key === "") 
 		{
@@ -342,7 +327,7 @@ class Store
 		{
 			for(let n = 0; n < this.proxies.length; n++) {
 				const proxy = this.proxies[n]
-				if(proxy.key === key) {
+				if(proxy.key === key && proxy.func === func) {
 					console.warn("(wabi.proxy) There is already a proxy declared with key:", key)
 					return
 				}
@@ -350,6 +335,30 @@ class Store
 			
 			const proxy = new Proxy(key, func)
 			this.proxies.push(proxy)
+		}
+	}
+
+	removeProxy(key, func)
+	{
+		if(key === "") 
+		{
+			if(this.globalProxy !== func) {
+				console.warn("(wabi.proxy) Global proxy functions don`t match")
+				return
+			}
+
+			this.globalProxy = null
+		}
+		else 
+		{
+			for(let n = 0; n < this.proxies.length; n++) {
+				const proxy = this.proxies[n]
+				if(proxy.key === key && proxy.func === func) {
+					this.proxies[n] = this.proxies[this.proxies.length - 1]
+					this.proxies.pop()
+					return
+				}
+			}
 		}
 	}
 
