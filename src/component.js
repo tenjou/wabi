@@ -83,39 +83,6 @@ WabiComponentInternal.prototype =
 
 	set bind(value)
 	{
-		// if(this._bind)
-		// {
-		// 	if(value)
-		// 	{
-		// 		if(this._bind !== value) {
-		// 			const func = this.bindFuncs.value
-		// 			store.unwatch(this._bind, func)
-		// 			store.watch(value, func)
-		// 			this.$.value = store.get(value)
-		// 		}
-		// 		else {
-		// 			this.$.value = store.get(value)
-		// 			return
-		// 		}
-		// 	}
-		// 	else {
-		// 		store.unwatch(this._bind, this.bindFuncs.value)
-		// 		this.$.value = this.state.value
-		// 	}
-		// }
-		// else
-		// {
-		// 	const func = (payload) => {
-		// 		this.handleAction("value", payload.value)
-		// 	}
-
-		// 	this.bindFuncs.value = func
-		// 	store.watch(value, func)
-		// 	this.$.value = store.get(value)
-		// }		
-
-		// this._bind = value
-
 		const prevBind = this._bind
 
 		if(prevBind)
