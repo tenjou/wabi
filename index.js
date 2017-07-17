@@ -1,22 +1,21 @@
+export { VNode } from "./src/VNode"
+export { component } from "./src/component"
+
 export {
 	elementOpen,
 	elementClose,
 	elementVoid,
-	componentVoid
-} from "./src/elements"
+	componentVoid,
+	text,
+	render
+} from "./src/dom"
+
+export { 
+	update,
+	route,
+	clearRoutes	
+} from "./src/renderer"
 
 export { 
 	store, lastSegment
 } from "./src/store"
-
-export { 
-	route, clearRoutes, update 
-} from "./src/router"
-
-export {
-	component
-} from "./src/component"
-
-export {
-	selectElementContents
-} from "./src/core"

@@ -1,4 +1,4 @@
-import { update } from "./router"
+import { update } from "./renderer"
 
 const tuple = {
 	data: null,
@@ -67,7 +67,7 @@ class Store
 
 		for(let n = 0; n < this.proxies.length; n++) {
 			const proxy = this.proxies[n]
-			if(data.key.indexOf(proxy.key) !== -1) {
+			if(data.key.indexOf(proxy.key) === 0) {
 				proxy.func(data)
 			}
 		}

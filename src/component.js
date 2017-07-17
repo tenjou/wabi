@@ -1,128 +1,57 @@
-import { store } from "./store";
-import { update } from "./router";
+import { update } from "./renderer"
+import { store } from "./store"
 
-let nextComponent = null
-
-const component = function(componentProto)
+function WabiComponentInternal() 
 {
-	function Component(nodeName, key) {
-		NodeData.call(this, nodeName, key)
-	}
+	this.bindFuncs = {}
+	this.vnode = null
+	this.dirty = false
 
-	const proto = Object.create(NodeData.prototype);
-
-	for(let key in componentProto)
-	{
-		const param = Object.getOwnPropertyDescriptor(componentProto, key);
-		if(param.get || param.set) {
-			Object.defineProperty(proto, key, param);
-		}
-		else {
-			proto[key] = componentProto[key];
-		}
-	}
-
-	const states = proto.state
-	for(let key in states)
-	{
-		Object.defineProperty(proto, "$" + key,
-		{
-			set(value) {
-				this.setState(key, value)
-			},
-			get() {
-				return this.$[key]
-			}
-		})
-	}
-
-	if(proto.state.value === undefined) {
-		proto.state.value = null
-	}
-
-	Component.prototype = proto;
-	Component.prototype.constructor = Component;
-
-	return Component
-}
-
-function NodeData(nodeName, key)
-{
-	this.nodeName = nodeName
-	this.attributes = Object.create(null)
-	this.parentAttributes = null
-	this.staticsApplied = false
-
-	/**
-	 * The key used to identify this node, used to preserve DOM nodes when they
-	 * move within their parent.
-	 * @const
-	 */
-	this.key = key;
-
-	/**
-	 * Keeps track of children within this node by their key.
-	 * {!Object<string, !Element>}
-	 */
-	this.keyMap = Object.create(null);
-
-	this.bindFuncs = Object.create(null)
-
-	/**
-	 * Whether or not the keyMap is currently valid.
-	 * @type {boolean}
-	 */
-	this.keyMapValid = true;
-
-	/**
-	 * The node name for this node.
-	 * @const {string}
-	 */
-	
 	const currState = {}
 	for(let key in this.state) {
 		currState[key] = this.state[key]
 	}
 
-	this.$ = currState;
+	this.$ = currState
+
+	if(this.mount) {
+		this.mount()
+	}
 }
 
-NodeData.prototype =
+WabiComponentInternal.prototype = 
 {
-	state: {
-		value: null
-	},
-
+	_bind: null,
+	mount: null,
 	unmount: null,
+	render: null,
 
-	remove()
+	remove() 
 	{
 		if(this.unmount) {
 			this.unmount()
 		}
 
-		const bindings = this.attributes.bind
-		if(bindings)
-		{
-			if(typeof bindings === "string") {
-				store.unwatch(bindings, this.bindFuncs.value)
-			}
-			else
-			{
-				for(let key in bindings) {
-					store.unwatch(bindings[key], this.bindFuncs[key])
-				}
-			}
-
-			this.bindFuncs = null
+		if(typeof this._bind === "string") {
+			store.unwatch(this._bind, this.bindFuncs.value)
 		}
+
+		this.dirty = false		
 	},
 
-	setState(state, value)
+	handleAction(state, value) {
+		this.$[state] = value
+		update(this)
+	},	
+
+	setState(key, value) 
 	{
 		if(this.$[state] === value) { return }
 
-		if(this.attributes.bind)
+		this.$[state] = value
+		update(this)
+
+		if(this.bind)
 		{
 			if(typeof this.attributes.bind === "string")
 			{
@@ -131,7 +60,7 @@ NodeData.prototype =
 				}
 				else {
 					this.$[state] = value
-					update()
+					update(this)
 				}
 			}
 			else
@@ -142,32 +71,52 @@ NodeData.prototype =
 				}
 				else {
 					this.$[state] = value
-					update()
+					update(this)
 				}
 			}
 		}
 		else {
 			this.$[state] = value
-			update()
+			update(this)
 		}
-	},
-
-	set $value(value) {
-		this.setState("value", value);
-	},
-
-	get $value() {
-		return this.$.value
-	},
-
-	handleAction(state, value) {
-		this.$[state] = value
-		update()
 	},
 
 	set bind(value)
 	{
-		const prevBind = this.attributes.bind
+		// if(this._bind)
+		// {
+		// 	if(value)
+		// 	{
+		// 		if(this._bind !== value) {
+		// 			const func = this.bindFuncs.value
+		// 			store.unwatch(this._bind, func)
+		// 			store.watch(value, func)
+		// 			this.$.value = store.get(value)
+		// 		}
+		// 		else {
+		// 			this.$.value = store.get(value)
+		// 			return
+		// 		}
+		// 	}
+		// 	else {
+		// 		store.unwatch(this._bind, this.bindFuncs.value)
+		// 		this.$.value = this.state.value
+		// 	}
+		// }
+		// else
+		// {
+		// 	const func = (payload) => {
+		// 		this.handleAction("value", payload.value)
+		// 	}
+
+		// 	this.bindFuncs.value = func
+		// 	store.watch(value, func)
+		// 	this.$.value = store.get(value)
+		// }		
+
+		// this._bind = value
+
+		const prevBind = this._bind
 
 		if(prevBind)
 		{
@@ -209,7 +158,7 @@ NodeData.prototype =
 				{
 					for(let key in prevBind) {
 						store.unwatch(prevBind[key], this.bindFuncs[key])
-						delete this.bindFuncs[key]
+						this.bindFuncs[key] = undefined
 						this.$[key] = this.state[key]
 					}
 				}
@@ -244,93 +193,64 @@ NodeData.prototype =
 				}
 			}
 		}
+
+		this._bind = value
 	},
 
 	get bind() {
-		return this.attributes.bind
+		return this._bind
+	},
+
+	updateAll()
+	{
+		update(this)
+
+		const children = this.vnode.children
+		for(let n = 0; n < children.length; n++) {
+			const child = children[n]
+			if(child.component) {
+				update(child.component)
+			}
+		}
 	}
 }
 
-const initData = function(node, nodeName, key)
+const component = function(componentProto) 
 {
-	let data
-	if(nextComponent) {
-		data = nextComponent
-		data.nodeName = nodeName
-		data.key = data.key || key
-		nextComponent = null
-	}
-	else {
-		data = new NodeData(nodeName, key)
+	function WabiComponent() {
+		WabiComponentInternal.call(this)
 	}
 
-	node.metaData = data
-	return data
-}
-
-const getData = function(node) 
-{
-	importNode(node)
-	return node.metaData
-}
-
-const importNode = function(node)
-{
-	if(node.metaData) {
-		return
+	const proto = Object.create(WabiComponentInternal.prototype)
+	for(let key in componentProto)
+	{
+		const param = Object.getOwnPropertyDescriptor(componentProto, key)
+		if(param.get || param.set) {
+			Object.defineProperty(proto, key, param)
+		}
+		else {
+			proto[key] = componentProto[key]
+		}
 	}
 
-	const isElement = node instanceof Element;
-	const nodeName = isElement ? node.localName : node.nodeName;
-	const key = isElement ? node.getAttribute('key') : null;
-	const data = initData(node, nodeName, key);
-
-	if(key) {
-		getData(node.parentNode).keyMap[key] = node;
+	const states = proto.state
+	for(let key in states)
+	{
+		Object.defineProperty(proto, "$" + key,
+		{
+			set(value) {
+				this.setState(key, value)
+			},
+			get() {
+				return this.$[key]
+			}
+		})
 	}
 
-	// if(isElement) {
-	// 	const attributes = node.attributes;
-	// 	const attrs = data.attrs;
-	// 	const newAttrs = data.newAttrs;
-	// 	const attrsArr = data.attrsArr;
+	WabiComponent.prototype = proto
+	WabiComponent.prototype.constructor = WabiComponent
 
-	// 	for (let i = 0; i < attributes.length; i += 1) {
-	// 		const attr = attributes[i];
-	// 		const name = attr.name;
-	// 		const value = attr.value;
-
-	// 		attrs[name] = value;
-	// 		newAttrs[name] = undefined;
-	// 		attrsArr.push(name);
-	// 		attrsArr.push(value);
-	// 	}
-	// }
-
-	for (let child = node.firstChild; child; child = child.nextSibling) {
-		importNode(child);
-	}
+	return WabiComponent
 }
 
-const nextComponentStart = function(componentCls) {
-	nextComponent = new componentCls(null, null)
-	return nextComponent
-}
-
-const nextComponentEnd = function() {
-	nextComponent = null
-}
-
-const haveNextComponent = function() {
-	return nextComponent
-}
-
-export {
-	getData,
-	initData,
-	importNode,
-	component,
-	nextComponentStart,
-	nextComponentEnd,
-	haveNextComponent
-}
+export { component }
