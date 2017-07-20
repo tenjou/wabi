@@ -26,6 +26,11 @@ const elementOpen = function(type, props)
 	{
 		if(node.type !== type) 
 		{
+			if(node.component) {
+				node.component.remove()
+				node.component = null
+			}
+
 			const prevElement = node.element
 			const element = document.createElement(type)
 			while(prevElement.firstChild) { 
@@ -171,7 +176,7 @@ const componentVoid = function(componentCls, props)
 const createComponent = function(componentCls, node, props) 
 {
 	const component = new componentCls()
-	
+
 	if(props && props.bind) {
 		component.bind = props.bind
 	}
