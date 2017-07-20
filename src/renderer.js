@@ -1,5 +1,9 @@
 import { VNode } from "./vnode"
-import { render, renderInstance } from "./dom"
+import { 
+	render, 
+	renderInstance,
+	removeAll
+} from "./dom"
 
 const updateBuffer = []
 const routes = []
@@ -9,11 +13,12 @@ let currRouteResult = []
 let currRoute = null
 let url = null
 
-function Route(regexp, component, enterFunc, exitFunc) {
+function Route(regexp, component, enterFunc, exitFunc, readyFunc) {
 	this.regexp = new RegExp(regexp)
 	this.component = component
 	this.enterFunc = enterFunc || null
 	this.exitFunc = exitFunc || null
+	this.readyFunc = readyFunc || null
 }
 
 const update = function(instance)
@@ -54,8 +59,8 @@ const sortByDepth = function(a, b) {
 	return a.depth - b.depth
 }
 
-const route = function(regexp, renderFunc, enterFunc, exitFunc) {
-	routes.push(new Route(regexp, renderFunc, enterFunc, exitFunc))
+const route = function(regexp, renderFunc, enterFunc, exitFunc, readyFunc) {
+	routes.push(new Route(regexp, renderFunc, enterFunc, exitFunc, readyFunc))
 	needUpdateRoute = true
 }
 
@@ -92,6 +97,11 @@ const updateRoute = function()
 
 			updateBuffer.length = 0
 			render(currRoute.component, document.body)
+
+			if(currRoute.readyFunc) {
+				currRoute.readyFunc()
+			}
+
 			break
 		}
 	}
@@ -103,10 +113,14 @@ const updateRoute = function()
 	needUpdateRoute = false
 }
 
-const clearRoutes = function() {
+const clearRoutes = function(remove) 
+{
 	routes.length = 0
 	currRoute = null
-	render(null, document.body)
+
+	if(remove) {
+		removeAll()
+	}
 }
 
 window.addEventListener("hashchange", () => {

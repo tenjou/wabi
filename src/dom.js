@@ -2,6 +2,7 @@ import { VNode } from "./VNode"
 
 const stack = new Array(128)
 let stackIndex = 0
+let bodyNode = null
 
 const elementOpen = function(type, props)
 {
@@ -132,38 +133,60 @@ const componentVoid = function(componentCls, props)
 	const parent = stack[stackIndex]
 
 	let node = parent.children[parent.index]
-	let component
-	if(!node) 
-	{
-		component = new componentCls()
-		if(props && props.bind) {
-			component.bind = props.bind
-		}	
-
-		component.render()
-		component.depth = stackIndex + 1
-
-		node = stack[stackIndex + 1]
-		if(node) {
-			node.component = component
-			component.vnode = node
-		}			
+	if(!node) {
+		return createComponent(componentCls, node, props)		
 	}
 	else 
 	{
-		component = node.component
+		const component = node.component
+		if(component) 
+		{
+			if(component.constructor !== componentCls) {
+				component.remove()
+				createComponent(componentCls, node, props)
+			}
+			else 
+			{
+				if(props && props.bind) {
+					component.bind = props.bind
+				}	
 
-		if(props && props.bind) {
-			component.bind = props.bind
-		}	
-
-		if(component.dirty) {
-			component.render()
-			component.dirty = false
+				if(component.dirty) {
+					component.render()
+					component.dirty = false
+				}
+				else {
+					parent.index++
+				}				
+			}
 		}
 		else {
-			parent.index++
+			createComponent(componentCls, node, props)
 		}
+	}
+
+	return node.component
+}
+
+const createComponent = function(componentCls, node, props) 
+{
+	const component = new componentCls()
+	
+	if(props && props.bind) {
+		component.bind = props.bind
+	}
+
+	if(component.mount) {
+		component.mount()
+	}
+
+	component.render()
+	component.depth = stackIndex + 1
+
+	node = stack[stackIndex + 1]
+	if(node) {
+		node.component = component
+		component.vnode = node
 	}
 
 	return component
@@ -239,13 +262,16 @@ const unsetProp = function(element, name)
 
 const render = function(component, parentElement)
 {
-	const node = new VNode(0, "body", null, parentElement, null)
+	if(!bodyNode) {
+		bodyNode = new VNode(0, "body", null, parentElement, null)
+	}
+	
 	stackIndex = 0
-	stack[0] = node
+	stack[0] = bodyNode
 
 	componentVoid(component)
 
-	node.index = 0
+	bodyNode.index = 0
 }
 
 const renderInstance = function(instance)
@@ -290,6 +316,10 @@ const removeNode = function(node)
 	}
 }
 
+const removeAll = function() {
+	removeUnusedNodes(bodyNode)
+}
+
 export { 
 	elementOpen, 
 	elementClose,
@@ -297,5 +327,6 @@ export {
 	componentVoid,
 	text,
 	render,
-	renderInstance
+	renderInstance,
+	removeAll
 }

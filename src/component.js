@@ -13,10 +13,6 @@ function WabiComponentInternal()
 	}
 
 	this.$ = currState
-
-	if(this.mount) {
-		this.mount()
-	}
 }
 
 WabiComponentInternal.prototype = 
@@ -25,6 +21,10 @@ WabiComponentInternal.prototype =
 	mount: null,
 	unmount: null,
 	render: null,
+
+	state: {
+		value: null
+	},
 
 	remove() 
 	{
