@@ -46,34 +46,34 @@ WabiComponentInternal.prototype =
 
 	setState(key, value) 
 	{
-		if(this.$[state] === value) { return }
+		if(this.$[key] === value) { return }
 
 		if(this._bind)
 		{
 			if(typeof this._bind === "string")
 			{
-				if(state === "value") {
+				if(key === "value") {
 					store.set(this._bind, value, true)
 				}
 				else {
-					this.$[state] = value
+					this.$[key] = value
 					update(this)
 				}
 			}
 			else
 			{
-				const binding = this._bind[state]
+				const binding = this._bind[key]
 				if(binding) {
 					store.set(binding, value, true)
 				}
 				else {
-					this.$[state] = value
+					this.$[key] = value
 					update(this)
 				}
 			}
 		}
 		else {
-			this.$[state] = value
+			this.$[key] = value
 			update(this)
 		}
 	},
