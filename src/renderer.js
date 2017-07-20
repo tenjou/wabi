@@ -14,7 +14,7 @@ let currRoute = null
 let url = null
 
 function Route(regexp, component, enterFunc, exitFunc, readyFunc) {
-	this.regexp = new RegExp(regexp)
+	this.regexp = regexp
 	this.component = component
 	this.enterFunc = enterFunc || null
 	this.exitFunc = exitFunc || null
@@ -76,34 +76,36 @@ const updateRoute = function()
 	for(let n = 0; n < routes.length; n++)
 	{
 		const routeItem = routes[n]
-		const regex = new RegExp(routeItem.regexp, "g")
-		while(result = regex.exec(url)) {
-			currRouteResult.push(result)
+
+		if(routeItem.regexp) {
+			const regex = new RegExp(routeItem.regexp, "g")
+			while(result = regex.exec(url)) {
+				currRouteResult.push(result)
+			}
+
+			if(currRouteResult.length === 0) { continue }
 		}
 
-		if(currRouteResult.length > 0)
-		{
-			if(currRoute === routeItem) { break }
+		if(currRoute === routeItem) { break }
 
-			if(currRoute && currRoute.exitFunc) {
-				currRoute.exitFunc()
-			}
-
-			currRoute = routeItem
-			
-			if(currRoute.enterFunc) {
-				currRoute.enterFunc(currRouteResult)
-			}
-
-			updateBuffer.length = 0
-			render(currRoute.component, document.body)
-
-			if(currRoute.readyFunc) {
-				currRoute.readyFunc()
-			}
-
-			break
+		if(currRoute && currRoute.exitFunc) {
+			currRoute.exitFunc()
 		}
+
+		currRoute = routeItem
+		
+		if(currRoute.enterFunc) {
+			currRoute.enterFunc(currRouteResult)
+		}
+
+		updateBuffer.length = 0
+		render(currRoute.component, document.body)
+
+		if(currRoute.readyFunc) {
+			currRoute.readyFunc()
+		}
+
+		break
 	}
 
 	if(!currRoute) {
