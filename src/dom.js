@@ -152,8 +152,10 @@ const componentVoid = function(componentCls, props)
 			}
 			else 
 			{
-				if(props && props.bind) {
-					component.bind = props.bind
+				if(props) {
+					for(let key in props) {
+						component[key] = props[key]
+					}
 				}	
 
 				if(component.dirty) {
@@ -177,15 +179,18 @@ const createComponent = function(componentCls, node, props)
 {
 	const component = new componentCls()
 
-	if(props && props.bind) {
-		component.bind = props.bind
-	}
-
 	if(component.mount) {
 		component.mount()
 	}
 
+	if(props) {
+		for(let key in props) {
+			component[key] = props[key]
+		}
+	}
+
 	component.render()
+	component.dirty = false
 	component.depth = stackIndex + 1
 
 	node = stack[stackIndex + 1]
