@@ -19,3 +19,8 @@ export {
 export { 
 	store, lastSegment
 } from "./src/store"
+
+export {
+	lastSegment,
+	selectElementContents
+} from "./src/utils"

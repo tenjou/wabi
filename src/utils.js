@@ -1,0 +1,22 @@
+const lastSegment = function(str)
+{
+	const index = str.lastIndexOf(".")
+	if(index === -1) { return null }
+
+	return str.slice(index + 1)
+}
+
+const selectElementContents = function(node)
+{
+	const range = doc.createRange()
+	range.selectNodeContents(node)
+
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+}
+
+export {
+	lastSegment,
+	selectElementContents
+}
