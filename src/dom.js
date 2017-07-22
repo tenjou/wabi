@@ -179,14 +179,14 @@ const createComponent = function(componentCls, node, props)
 {
 	const component = new componentCls()
 
-	if(component.mount) {
-		component.mount()
-	}
-
 	if(props) {
 		for(let key in props) {
 			component[key] = props[key]
 		}
+	}
+
+	if(component.mount) {
+		component.mount()
 	}
 
 	component.render()
