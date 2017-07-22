@@ -217,6 +217,7 @@ const text = function(txt)
 		if(node.type !== "#text") {
 			const element = document.createTextNode(txt)
 			node.element.parentElement.replaceChild(element, node.element)
+			node.type = "#text"
 			node.element = element
 		}
 		else if(node.element.nodeValue !== txt) {
