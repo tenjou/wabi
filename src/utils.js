@@ -8,7 +8,7 @@ const lastSegment = function(str)
 
 const selectElementContents = function(node)
 {
-	const range = doc.createRange()
+	const range = document.createRange()
 	range.selectNodeContents(node)
 
 	const selection = window.getSelection()
