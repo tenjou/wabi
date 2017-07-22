@@ -32,7 +32,12 @@ const elementOpen = function(type, props)
 			}
 
 			const prevElement = node.element
+			const children = node.children
 			const element = document.createElement(type)
+			for(let n = 0; n < children.length; n++) {
+				element.appendChild(children[n].element)
+			}
+
 			while(prevElement.firstChild) { 
 				element.appendChild(prevElement.firstChild)
 			}
