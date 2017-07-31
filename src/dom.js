@@ -3,6 +3,7 @@ import { VNode } from "./VNode"
 const stack = new Array(128)
 let stackIndex = 0
 let bodyNode = null
+let prevMountedElement = null
 
 const elementOpen = function(type, props)
 {
@@ -26,20 +27,27 @@ const elementOpen = function(type, props)
 	{
 		if(node.type !== type) 
 		{
-			if(node.component) {
+			const element = document.createElement(type)
+
+			if(node.component) 
+			{
 				node.component.remove()
 				node.component = null
-			}
 
-			const prevElement = node.element
-			const children = node.children
-			const element = document.createElement(type)
-			for(let n = 0; n < children.length; n++) {
-				element.appendChild(children[n].element)
+				const children = node.children
+				for(let n = 0; n < children.length; n++) {
+					element.appendChild(children[n].element)
+				}
 			}
+			else 
+			{
+				const prevElement = node.element
 
-			while(prevElement.firstChild) { 
-				element.appendChild(prevElement.firstChild)
+				while(prevElement.firstChild) { 
+					element.appendChild(prevElement.firstChild)
+				}
+
+				prevElement.parentElement.replaceChild(element, prevElement)
 			}
 
 			if(props) 
@@ -49,8 +57,7 @@ const elementOpen = function(type, props)
 				}
 				node.props = props
 			}
-
-			prevElement.parentElement.replaceChild(element, prevElement)
+			
 			node.type = type
 			node.element = element
 		}
@@ -102,6 +109,14 @@ const elementOpen = function(type, props)
 		}
 	}
 
+	if(prevMountedElement) {
+		node.prevElement = prevMountedElement
+		prevMountedElement = null
+	}
+	else {
+		node.prevElement = null
+	}
+
 	parent.index++
 	stackIndex++
 	stack[stackIndex] = node
@@ -112,8 +127,7 @@ const elementOpen = function(type, props)
 const elementClose = function(type)
 {
 	const node = stack[stackIndex]
-	const parent = stack[stackIndex - 1]
-
+	
 	if(node.type !== type) {
 		console.error("type-error")
 	}
@@ -121,13 +135,20 @@ const elementClose = function(type)
 	if(node.index !== node.children.length) {
 		removeUnusedNodes(node)
 	}
-
 	node.index = 0
-	stackIndex--
 
 	if(!node.element.parentElement) {
-		parent.element.appendChild(node.element)
+		const parent = stack[stackIndex - 1]
+		if(node.prevElement) {
+			parent.element.insertBefore(node.element, node.prevElement.nextSibling)
+		}
+		else {
+			parent.element.appendChild(node.element)
+		}
 	}
+
+	stackIndex--
+	prevMountedElement = node.element
 }
 
 const elementVoid = function(type, props)
@@ -144,7 +165,7 @@ const componentVoid = function(componentCls, props)
 
 	let node = parent.children[parent.index]
 	if(!node) {
-		return createComponent(componentCls, node, props)		
+		return createComponent(componentCls, parent, node, props)		
 	}
 	else 
 	{
@@ -153,7 +174,7 @@ const componentVoid = function(componentCls, props)
 		{
 			if(component.constructor !== componentCls) {
 				component.remove()
-				createComponent(componentCls, node, props)
+				createComponent(componentCls, parent, node, props)
 			}
 			else 
 			{
@@ -163,9 +184,18 @@ const componentVoid = function(componentCls, props)
 					}
 				}	
 
-				if(component.dirty) {
+				if(component.dirty) 
+				{
+					parent.index++
+					stackIndex++
+					stack[stackIndex] = node
+					
 					component.render()
+					component.index = 0
 					component.dirty = false
+					node.index = 0
+
+					stackIndex--
 				}
 				else {
 					parent.index++
@@ -173,14 +203,14 @@ const componentVoid = function(componentCls, props)
 			}
 		}
 		else {
-			createComponent(componentCls, node, props)
+			return createComponent(componentCls, parent, node, props)
 		}
 	}
 
 	return node.component
 }
 
-const createComponent = function(componentCls, node, props) 
+const createComponent = function(componentCls, parent, node, props) 
 {
 	const component = new componentCls()
 
@@ -194,15 +224,47 @@ const createComponent = function(componentCls, node, props)
 		component.mount()
 	}
 
+	let vnode
+	if(node) 
+	{
+		if(node.component) {
+			vnode = node
+			vnode.index = 0
+		}
+		else {
+			vnode = new VNode(0, null, props, parent.element, parent)
+			vnode.children.push(node)
+			vnode.id = node.id
+			node.parent.children[node.id] = vnode
+			node.id = 0
+			node.index = 0
+			node.parent = vnode
+		}
+	}
+	else {
+		vnode = new VNode(0, null, props, parent.element, parent)
+		parent.children.push(vnode)
+	}
+
+	vnode.component = component
+	vnode.prevElement = prevMountedElement
+
+	parent.index++
+	stackIndex++
+	stack[stackIndex] = vnode
+
+	component.vnode = vnode
+	component.depth = stackIndex
 	component.render()
 	component.dirty = false
-	component.depth = stackIndex + 1
 
-	node = stack[stackIndex + 1]
-	if(node) {
-		node.component = component
-		component.vnode = node
+	if(vnode.index !== vnode.children.length) {
+		removeUnusedNodes(vnode)
 	}
+
+	vnode.index = 0
+
+	stackIndex--
 
 	return component
 }
@@ -213,17 +275,33 @@ const text = function(txt)
 	let node = parent.children[parent.index]
 	if(!node) {
 		const element = document.createTextNode(txt)
-		const node = new VNode(parent.index, "#text", null, element, parent)
+		const node = new VNode(parent.index, "#text", null, element, parent, null)
 		parent.children[parent.index] = node
 		parent.element.appendChild(element)		
 	}
 	else 
 	{
-		if(node.type !== "#text") {
+		if(node.type !== "#text") 
+		{
 			const element = document.createTextNode(txt)
-			node.element.parentElement.replaceChild(element, node.element)
 			node.type = "#text"
+			
+			if(node.component) {
+				node.component.remove()
+				node.component = null
+				if(node.prevElement) {
+					parent.element.insertBefore(element, node.prevElement.nextSibling)
+				}
+				else {
+					parent.element.appendChild(element)
+				}
+			}
+			else {
+				node.element.parentElement.replaceChild(element, node.element)
+			}
+
 			node.element = element
+			removeUnusedNodes(node)			
 		}
 		else if(node.element.nodeValue !== txt) {
 			node.element.nodeValue = txt
@@ -287,22 +365,27 @@ const render = function(component, parentElement)
 
 	componentVoid(component)
 
+	if(bodyNode.index !== bodyNode.children.length) {
+		removeUnusedNodes(bodyNode)
+	}
+
 	bodyNode.index = 0
 }
 
 const renderInstance = function(instance)
 {
 	const vnode = instance.vnode
-	const parentVNode = vnode.parent
-	parentVNode.index = vnode.id
-
 	stackIndex = instance.depth
-	stack[instance.depth] = parentVNode
-
+	stack[instance.depth] = vnode
+	prevMountedElement = vnode.prevElement
 	instance.render()
 	instance.dirty = false
 
-	parentVNode.index = 0	
+	if(vnode.index !== vnode.children.length) {
+		removeUnusedNodes(vnode)
+	}
+
+	vnode.index = 0
 }
 
 const removeUnusedNodes = function(node)
@@ -321,15 +404,19 @@ const removeNode = function(node)
 	if(node.component) {
 		node.component.remove()
 	}
-
-	node.children.length = 0
-	node.element.parentElement.removeChild(node.element)
-
+	else {
+		if(node.element.parentElement) {
+			node.element.parentElement.removeChild(node.element)
+		}		
+	}
+	
 	const children = node.children
 	for(let n = 0; n < children.length; n++) {
 		const child = children[n]
 		removeNode(child)
 	}
+
+	node.children.length = 0
 }
 
 const removeAll = function() {

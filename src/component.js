@@ -159,6 +159,7 @@ WabiComponentInternal.prototype =
 		}
 
 		this._bind = value
+		this.dirty = true
 	},
 
 	get bind() {
