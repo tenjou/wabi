@@ -15,6 +15,11 @@ const elementOpen = function(type, props)
 		const element = document.createElement(type)
 		node = new VNode(parent.index, type, props, element, parent)
 
+		if(prevMountedElement) {
+			node.prevElement = prevMountedElement
+			prevMountedElement = null
+		}
+
 		if(props) {
 			for(let key in props) {
 				setProp(element, key, props[key])
@@ -107,15 +112,16 @@ const elementOpen = function(type, props)
 				}
 			}
 		}
+
+		if(prevMountedElement) {
+			node.prevElement = prevMountedElement
+			prevMountedElement = null
+		}
+		else {
+			node.prevElement = null
+		}
 	}
 
-	if(prevMountedElement) {
-		node.prevElement = prevMountedElement
-		prevMountedElement = null
-	}
-	else {
-		node.prevElement = null
-	}
 
 	parent.index++
 	stackIndex++
