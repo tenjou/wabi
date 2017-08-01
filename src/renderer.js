@@ -59,8 +59,8 @@ const sortByDepth = function(a, b) {
 	return a.depth - b.depth
 }
 
-const route = function(regexp, renderFunc, enterFunc, exitFunc, readyFunc) {
-	routes.push(new Route(regexp, renderFunc, enterFunc, exitFunc, readyFunc))
+const route = function(regexp, component, enterFunc, exitFunc, readyFunc) {
+	routes.push(new Route(regexp, component, enterFunc, exitFunc, readyFunc))
 	needUpdateRoute = true
 }
 
