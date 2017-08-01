@@ -184,11 +184,55 @@ const componentVoid = function(componentCls, props)
 			}
 			else 
 			{
-				if(props) {
-					for(let key in props) {
-						component[key] = props[key]
+				const prevProps = node.props
+				if(props !== prevProps) 
+				{
+					if(props)
+					{
+						if(prevProps)
+						{
+							for(let key in prevProps) 
+							{
+								if(props[key] === undefined) {
+									if(key[0] === "$") {
+										component[key] = component.state[key.slice(1)]
+									} 
+									else {
+										component[key] = null
+									}
+								}
+							}
+
+							for(let key in props) {
+								const value = props[key]
+								if(component[key] !== value) {
+									component[key] = value
+								}
+							}
+						}
+						else
+						{
+							for(let key in props) {
+								component[key] = props[key]
+							}							
+						}
+
+						node.props = props
 					}
-				}	
+					else if(prevProps) 
+					{
+						for(let key in prevProps) {
+							if(key[0] === "$") {
+								component[key] = component.state[ket.slice(1)]
+							} 
+							else {
+								component[key] = null
+							}
+						}
+
+						node.props = null
+					}
+				}
 
 				if(component.dirty) 
 				{
