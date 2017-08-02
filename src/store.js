@@ -34,7 +34,7 @@ class Store
 	{
 		this.dispatch({
 			action: "ADD",
-			key,
+			key,	
 			value
 		})
 	}
@@ -189,13 +189,13 @@ class Store
 
 	watch(key, element)
 	{
-		const buffer = this.watchers[key]
-		if(!buffer) {
-			this.watchers[key] = [ element ]
-		}
-		else {
-			buffer.push(element)
-		}
+        const buffer = this.watchers[key]
+        if(!buffer) {
+            this.watchers[key] = [ element ]
+        }
+        else {
+            buffer.push(element)
+        }
 	}
 
 	unwatch(key, element)
@@ -238,7 +238,7 @@ class Store
 			return this.data
 		}
 
-		const buffer = key.split(".")
+		const buffer = key.split("/")
 		let data = this.data
 
 		for(let n = 0; n < buffer.length; n++)
@@ -268,7 +268,7 @@ class Store
 			return tuple
 		}
 
-		const buffer = key.split(".")
+		const buffer = key.split("/")
 		let data = this.data
 
 		const num = buffer.length - 1;
@@ -306,7 +306,7 @@ class Store
 
 			tuple.data = data
 			tuple.key = buffer[num]
-			tuple.parentKey = key.slice(0, key.lastIndexOf("."))
+			tuple.parentKey = key.slice(0, key.lastIndexOf("/"))
 		}
 
 		return tuple
@@ -371,7 +371,7 @@ const store = new Store()
 
 const lastSegment = function(str)
 {
-	const index = str.lastIndexOf(".")
+	const index = str.lastIndexOf("/")
 	if(index === -1) { return null }
 
 	return str.slice(index + 1)
