@@ -218,27 +218,23 @@ class Store
 	}
 
 	// TODO: Remove empty watcher objects
-	unwatch(key, func)
+	unwatch(path, func)
 	{
 		let watchers = this.watchers
-		if(!watchers.buffer) {
-			console.warn("(store.unwatch) Watcher can not be found for:", keys)
-			return
-		}
 
 		const keys = path.split("/")
 		for(let n = 0; n < keys.length; n++) {
-			watchers = watchers.buffer[keys[n]]
 			if(!watchers.buffer) {
-				console.warn("(store.unwatch) Watcher can not be found for:", keys)
+				console.warn("(store.unwatch) Watcher can not be found for:", path)
 				return
 			}
+			watchers = watchers.buffer[keys[n]]
 		}
 
-		const funcs = wathcers.funcs
+		const funcs = watchers.funcs
 		const index = funcs.indexOf(func)
 		if(index === -1) {
-			console.warn("(store.unwatch) Watcher can not be found for:", key)
+			console.warn("(store.unwatch) Watcher can not be found for:", path)
 			return		
 		}
 
