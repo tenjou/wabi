@@ -3,7 +3,8 @@ import { update } from "./renderer"
 const tuple = {
 	data: null,
 	key: null,
-	parentKey: null
+	parentKey: null,
+	watchers: null
 }
 
 function Proxy(key, func) {
@@ -11,22 +12,28 @@ function Proxy(key, func) {
 	this.func = func
 }
 
+function WatcherBuffer() {
+	this.funcs = []
+	this.buffer = null
+}
+
 class Store
 {
 	constructor() 
 	{
 		this.data = {}
-		this.watchers = {}
 		this.proxies = []
+
+		this.watchers = new WatcherBuffer()
+		this.watchers.buffer = {}
 	}
 
-	set(key, value, force)
+	set(key, value)
 	{
 		this.dispatch({
 			action: "SET",
 			key,
-			value,
-			force
+			value
 		})
 	}
 
@@ -77,38 +84,23 @@ class Store
 	{
 		if(!this.getData(payload.key, payload.force)) { return }
 
-		if(!tuple.key)
-		{
-			this.data = payload.value
-
-			for(let key in this.watchers)
-			{
-				const value = this.get(key)
-
-				const emitPayload = {
-					action: "SET",
-					key: key,
-					value: value
-				}
-				this.emit(emitPayload)
-			}
-		}
-		else
+		if(tuple.key) 
 		{
 			tuple.data[tuple.key] = payload.value
-			this.emit(payload)
-
-			if(tuple.parentKey)
-			{
-				const emitPayload = {
-					action: payload.action,
-					key: tuple.parentKey,
-					value: tuple.data,
-					changedKey: tuple.key,
-					changedValue: payload.value
-				}
-				this.emit(emitPayload)
-			}
+			this.emit({
+				action: "SET",
+				key: tuple.parentKey,
+				value: tuple.data
+			}, tuple.watchers, tuple.key, payload.value)
+		}
+		else 
+		{
+			this.data = payload.value
+			this.emitWatchers({
+				action: "SET",
+				key: "",
+				value: payload.value
+			}, this.watchers)
 		}
 	}
 
@@ -129,12 +121,22 @@ class Store
 			array.push(payload.value)
 		}
 
-		const emitPayload = {
-			action: payload.action,
-			key: tuple.key,
-			value: array
+		const watchers = tuple.watchers.buffer ? tuple.watchers.buffer[tuple.key] : null
+		if(!watchers) { return }
+
+		const funcs = watchers.funcs
+		if(funcs) 
+		{
+			const payload = {
+				action: "SET",
+				key: tuple.key,
+				value: array
+			}
+
+			for(let n = 0; n < funcs.length; n++) {
+				funcs[n](payload)
+			}
 		}
-		this.emit(emitPayload)
 	}
 
 	performRemove(payload)
@@ -149,24 +151,11 @@ class Store
 			delete data[tuple.key]
 		}
 
-		this.emit(payload)
-
-		const emitPayload = {
-			action: payload.action,
+		this.emit({
+			action: "SET",
 			key: tuple.parentKey,
-			value: data,
-			changedKey: tuple.key
-		}
-		this.emit(emitPayload)
-	}
-
-	performCreate(payload)
-	{
-		if(!this.getData(payload.key, true)) { return }
-
-		if(!tuple.data[tuple.key]) {
-			tuple.data[tuple.key] = payload.value
-		}
+			value: tuple.data
+		}, tuple.watchers, tuple.key, null)
 	}
 
 	handle(data)
@@ -181,49 +170,130 @@ class Store
 			case "REMOVE":
 				this.performRemove(data)
 				break
-			case "CREATE":
-				this.performCreate(data)
-				break
 		}
 	}
 
-	watch(key, element)
+	watch(path, func)
 	{
-        const buffer = this.watchers[key]
-        if(!buffer) {
-            this.watchers[key] = [ element ]
-        }
-        else {
-            buffer.push(element)
-        }
-	}
+		let watchers = this.watchers
 
-	unwatch(key, element)
-	{
-		const buffer = this.watchers[key]
-		if(!buffer) { return }
-
-		for(let n = 0; n < buffer.length; n++)
+		const keys = path.split("/")
+		for(let n = 0; n < keys.length; n++) 
 		{
-			if(buffer[n] === element) {
-				buffer[n] = buffer[buffer.length - 1]
-				buffer.pop()
+			const key = keys[n]
+			const buffer = watchers.buffer
+
+			if(buffer) 
+			{
+				const nextWatchers = buffer[key]
+				if(!nextWatchers) {
+					const newWatchers = new WatcherBuffer()
+					watchers.buffer[key] = newWatchers
+					watchers = this.fillWatchers(newWatchers, keys, n + 1)
+					break
+				} 
+				else {
+					watchers = nextWatchers
+				}
+			}
+			else {
+				watchers = this.fillWatchers(watchers, keys, n)
 				break
 			}
 		}
 
-		if(buffer.length === 0) {
-			delete this.watchers[key]
+		watchers.funcs.push(func)
+	}
+
+	fillWatchers(watchers, keys, index)
+	{
+		for(let n = index; n < keys.length; n++) {
+			const newWatcher = new WatcherBuffer()
+			watchers.buffer = {}
+			watchers.buffer[keys[n]] = newWatcher
+			watchers = newWatcher
+		}
+
+		return watchers
+	}
+
+	// TODO: Remove empty watcher objects
+	unwatch(key, func)
+	{
+		let watchers = this.watchers
+		if(!watchers.buffer) {
+			console.warn("(store.unwatch) Watcher can not be found for:", keys)
+			return
+		}
+
+		const keys = path.split("/")
+		for(let n = 0; n < keys.length; n++) {
+			watchers = watchers.buffer[keys[n]]
+			if(!watchers.buffer) {
+				console.warn("(store.unwatch) Watcher can not be found for:", keys)
+				return
+			}
+		}
+
+		const funcs = wathcers.funcs
+		const index = funcs.indexOf(func)
+		if(index === -1) {
+			console.warn("(store.unwatch) Watcher can not be found for:", key)
+			return		
+		}
+
+		funcs[index] = funcs[funcs.length - 1]
+		funcs.pop()
+	}
+
+	emit(payload, watchers, key, value)
+	{
+		if(!watchers) { return }
+
+		const funcs = watchers.funcs
+		if(funcs) {
+			for(let n = 0; n < funcs.length; n++) {
+				funcs[n](payload)
+			}
+		}
+
+		watchers = watchers.buffer ? watchers.buffer[key] : null
+		if(watchers) {
+			payload.key = key
+			payload.value = value
+			this.emitWatchers(payload, watchers)
 		}
 	}
 
-	emit(payload)
+	emitWatchers(payload, watchers)
 	{
-		const buffer = this.watchers[payload.key]
-		if(!buffer) { return }
+		const funcs = watchers.funcs
+		if(funcs) {
+			for(let n = 0; n < funcs.length; n++) {
+				funcs[n](payload)
+			}
+		}
 
-		for(let n = 0; n < buffer.length; n++) {
-			buffer[n](payload)
+		const buffer = watchers.buffer
+		if(buffer)
+		{
+			const value = payload.value
+			if(value && typeof value === "object")
+			{
+				for(let key in buffer) {
+					payload.key = key
+					payload.value = value[key] || null
+					this.emitWatchers(payload, buffer[key])
+				}
+			}
+			else 
+			{
+				payload.value = null
+				for(let key in buffer) {
+					payload.key = key
+					this.emitWatchers(payload, buffer[key])
+				}
+			}
 		}
 	}
 
@@ -259,54 +329,48 @@ class Store
 		return data
 	}
 
-	getData(key, force)
+	getData(path)
 	{
-		if(!key) {
+		if(!path) {
 			tuple.data = this.data
 			tuple.key = null
 			tuple.parentKey = null
+			tuple.watchers = null
 			return tuple
 		}
 
-		const buffer = key.split("/")
-		let data = this.data
-
-		const num = buffer.length - 1;
-		if(num === 0)
-		{
-			tuple.data = data
-			tuple.key = buffer[0]
+		const keys = path.split("/")
+		const num = keys.length - 1;
+		if(num === 0) {
+			tuple.data = this.data
+			tuple.key = keys[0]
 			tuple.parentKey = null
+			tuple.watchers = this.watchers
 		}
 		else
 		{
+			let data = this.data
+			let watchers = this.watchers
+
 			for(let n = 0; n < num; n++)
 			{
-				const newData = data[buffer[n]]
-				if(!newData)
-				{
-					if(!force) {
-						console.warn(`(store.getData) No data available with key: [${buffer[n]}] in address: [${key}]`)
-						return null
-					}
-					else
-					{
-						for(; n < num; n++) {
-							const newDict = {}
-							data[buffer[n]] = newDict
-							data = newDict
-						}
-						break
-					}
-
+				const key = keys[n]
+				const newData = data[key]
+				if(!newData) {
+					console.warn(`(store.getData) No data available with key: [${keys[n]}] with path: [${path}]`)
+					return null
 				}
 
 				data = newData
+				if(watchers) {
+					watchers = watchers.buffer ? watchers.buffer[key] : null
+				}
 			}
 
 			tuple.data = data
-			tuple.key = buffer[num]
-			tuple.parentKey = key.slice(0, key.lastIndexOf("/"))
+			tuple.key = keys[num]
+			tuple.parentKey = keys[num - 1]
+			tuple.watchers = watchers
 		}
 
 		return tuple
