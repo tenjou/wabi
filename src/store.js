@@ -53,16 +53,7 @@ class Store
 			key
 		})
 	}
-
-	create(key, value)
-	{
-		this.dispatch({
-			action: "CREATE",
-			key,
-			value
-		})
-	}
-
+	
 	dispatch(data)
 	{
 		if(this.globalProxy) {
