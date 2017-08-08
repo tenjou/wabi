@@ -32,20 +32,8 @@ const update = function(instance)
 
 const renderLoop = function()
 {
-	if(needUpdate)
-	{
-		updateBuffer.sort(sortByDepth)
-
-		for(let n = 0; n < updateBuffer.length; n++) 
-		{
-			const node = updateBuffer[n]
-			if(!node.dirty) { continue }
-			
-			renderInstance(node)
-		}
-
-		updateBuffer.length = 0
-		needUpdate = false
+	if(needUpdate) {
+		updateRender()
 	}
 
 	if(needUpdateRoute) {
@@ -53,6 +41,22 @@ const renderLoop = function()
 	}
 
 	window.requestAnimationFrame(renderLoop)
+}
+
+const updateRender = function()
+{
+	updateBuffer.sort(sortByDepth)
+
+	for(let n = 0; n < updateBuffer.length; n++) 
+	{
+		const node = updateBuffer[n]
+		if(!node.dirty) { continue }
+		
+		renderInstance(node)
+	}
+
+	updateBuffer.length = 0
+	needUpdate = false	
 }
 
 const sortByDepth = function(a, b) {
@@ -98,7 +102,9 @@ const updateRoute = function()
 			currRoute.enterFunc(currRouteResult)
 		}
 
-		updateBuffer.length = 0
+		if(updateBuffer.length > 0) {
+			updateRender()
+		}
 		render(currRoute.component, document.body)
 
 		if(currRoute.readyFunc) {
