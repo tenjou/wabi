@@ -102,9 +102,6 @@ const updateRoute = function()
 			currRoute.enterFunc(currRouteResult)
 		}
 
-		if(updateBuffer.length > 0) {
-			updateRender()
-		}
 		render(currRoute.component, document.body)
 
 		if(currRoute.readyFunc) {
