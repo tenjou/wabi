@@ -23,6 +23,7 @@ class Store
 	{
 		this.data = {}
 		this.proxies = []
+		this.emitting = false
 
 		this.watchers = new WatcherBuffer()
 		this.watchers.buffer = {}
@@ -56,18 +57,20 @@ class Store
 	
 	dispatch(data)
 	{
+		for(let n = 0; n < this.proxies.length; n++) {
+			const proxy = this.proxies[n]
+			if(data.key.indexOf(proxy.key) === 0) {
+				if(proxy.func(data)) {
+					return
+				}
+			}
+		}
+
 		if(this.globalProxy) {
 			this.globalProxy(data)
 		}
 		else {
 			this.handle(data)
-		}
-
-		for(let n = 0; n < this.proxies.length; n++) {
-			const proxy = this.proxies[n]
-			if(data.key.indexOf(proxy.key) === 0) {
-				proxy.func(data)
-			}
 		}
 	}
 
@@ -228,14 +231,21 @@ class Store
 			console.warn("(store.unwatch) Watcher can not be found for:", path)
 			return		
 		}
-
-		funcs[index] = funcs[funcs.length - 1]
-		funcs.pop()
+	
+		if(this.emitting) {
+			funcs.splice(index, 1)
+		}
+		else {
+			funcs[index] = funcs[funcs.length - 1]
+			funcs.pop()
+		}
 	}
 
 	emit(payload, watchers, key, value)
 	{
 		if(!watchers) { return }
+
+		this.emitting = true
 
 		const funcs = watchers.funcs
 		if(funcs) {
@@ -250,6 +260,8 @@ class Store
 			payload.value = value
 			this.emitWatchers(payload, watchers)
 		}
+
+		this.emitting = false
 	}
 
 	emitWatchers(payload, watchers)
