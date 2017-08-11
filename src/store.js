@@ -78,7 +78,7 @@ class Store
 	{
 		if(!this.getData(payload.key, payload.force)) { return }
 
-		if(tuple.key) 
+		if(payload.key) 
 		{
 			tuple.data[tuple.key] = payload.value
 			this.emit({
