@@ -243,6 +243,11 @@ const componentVoid = function(componentCls, props)
 					component.render()
 					component.index = 0
 					component.dirty = false
+				
+					if(node.index !== node.children.length) {
+						removeUnusedNodes(node)
+					}
+
 					node.index = 0
 
 					stackIndex--
