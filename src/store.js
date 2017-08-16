@@ -214,6 +214,8 @@ class Store
 	// TODO: Remove empty watcher objects
 	unwatch(path, func)
 	{
+		if(!path) { return }
+		
 		let watchers = this.watchers
 
 		const keys = path.split("/")
