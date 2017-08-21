@@ -35,6 +35,11 @@ WabiComponentInternal.prototype =
 		if(typeof this._bind === "string") {
 			store.unwatch(this._bind, this.bindFuncs.value)
 		}
+		else {
+			for(let key in this._bind) {
+				store.unwatch(this._bind[key], this.bindFuncs[key])
+			}
+		}
 
 		this.dirty = false		
 	},
