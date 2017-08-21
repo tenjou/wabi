@@ -85,7 +85,7 @@ class Store
 				action: "SET",
 				key: tuple.parentKey,
 				value: tuple.data
-			}, tuple.watchers, tuple.key, payload.value)
+			}, tuple.watchers, "SET", tuple.key, payload.value)
 		}
 		else 
 		{
@@ -149,7 +149,7 @@ class Store
 			action: "SET",
 			key: tuple.parentKey,
 			value: tuple.data
-		}, tuple.watchers, tuple.key, null)
+		}, tuple.watchers, "REMOVE", tuple.key, null)
 	}
 
 	handle(data)
@@ -243,7 +243,7 @@ class Store
 		}
 	}
 
-	emit(payload, watchers, key, value)
+	emit(payload, watchers, action, key, value)
 	{
 		if(!watchers) { return }
 
@@ -258,6 +258,7 @@ class Store
 
 		watchers = watchers.buffer ? watchers.buffer[key] : null
 		if(watchers) {
+			payload.action = action
 			payload.key = key
 			payload.value = value
 			this.emitWatchers(payload, watchers)
