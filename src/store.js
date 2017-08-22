@@ -57,15 +57,6 @@ class Store
 	
 	dispatch(data)
 	{
-		for(let n = 0; n < this.proxies.length; n++) {
-			const proxy = this.proxies[n]
-			if(data.key.indexOf(proxy.key) === 0) {
-				if(proxy.func(data)) {
-					return
-				}
-			}
-		}
-
 		if(this.globalProxy) {
 			this.globalProxy(data)
 		}
@@ -154,6 +145,15 @@ class Store
 
 	handle(data)
 	{
+		for(let n = 0; n < this.proxies.length; n++) {
+			const proxy = this.proxies[n]
+			if(data.key.indexOf(proxy.key) === 0) {
+				if(proxy.func(data)) {
+					return
+				}
+			}
+		}
+
 		switch(data.action) {
 			case "SET": 
 				this.performSet(data)
