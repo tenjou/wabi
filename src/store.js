@@ -169,6 +169,8 @@ class Store
 
 	watch(path, func)
 	{
+		if(!path) { return }
+		
 		let watchers = this.watchers
 
 		const keys = path.split("/")
