@@ -227,6 +227,7 @@ class Store
 				return
 			}
 			watchers = watchers.buffer[keys[n]]
+			if(!watchers) { return }
 		}
 
 		const funcs = watchers.funcs
