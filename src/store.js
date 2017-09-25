@@ -1,12 +1,5 @@
 import { update } from "./renderer"
 
-const tuple = {
-	data: null,
-	key: null,
-	parentKey: null,
-	watchers: null
-}
-
 function Proxy(key, func) {
 	this.key = key
 	this.func = func
@@ -67,7 +60,8 @@ class Store
 
 	performSet(payload)
 	{
-		if(!this.getData(payload.key, payload.force)) { return }
+		const tuple = this.getData(payload.key)
+		if(!tuple) { return }
 
 		if(payload.key) 
 		{
@@ -91,7 +85,8 @@ class Store
 
 	performAdd(payload)
 	{
-		if(!this.getData(payload.key)) { return }
+		const tuple = this.getData(payload.key)
+		if(!tuple) { return }
 
 		let array = tuple.data[tuple.key]
 		if(!array) {
@@ -126,7 +121,8 @@ class Store
 
 	performRemove(payload)
 	{
-		if(!this.getData(payload.key)) { return }
+		const tuple = this.getData(payload.key)
+		if(!tuple) { return }
 
 		const data = tuple.data
 		if(Array.isArray(data)) {
@@ -287,7 +283,7 @@ class Store
 			{
 				for(let key in buffer) {
 					payload.key = key
-					payload.value = value[key] || null
+					payload.value = (value[key] === undefined) ? null : value[key]
 					this.emitWatchers(payload, buffer[key])
 				}
 			}
@@ -337,45 +333,50 @@ class Store
 	getData(path)
 	{
 		if(!path) {
-			tuple.data = this.data
-			tuple.key = null
-			tuple.parentKey = null
-			tuple.watchers = null
+			const tuple = {
+				data: this.data,
+				key: null,
+				parentKey: null,
+				watchers: null
+			}
 			return tuple
 		}
 
 		const keys = path.split("/")
 		const num = keys.length - 1;
 		if(num === 0) {
-			tuple.data = this.data
-			tuple.key = keys[0]
-			tuple.parentKey = null
-			tuple.watchers = this.watchers
+			const tuple = {
+				data: this.data,
+				key: keys[0],
+				parentKey: null,
+				watchers: this.watchers
+			}
+			return tuple
 		}
-		else
+
+		let data = this.data
+		let watchers = this.watchers
+
+		for(let n = 0; n < num; n++)
 		{
-			let data = this.data
-			let watchers = this.watchers
-
-			for(let n = 0; n < num; n++)
-			{
-				const key = keys[n]
-				const newData = data[key]
-				if(!newData) {
-					console.warn(`(store.getData) No data available with key: [${keys[n]}] with path: [${path}]`)
-					return null
-				}
-
-				data = newData
-				if(watchers) {
-					watchers = watchers.buffer ? watchers.buffer[key] : null
-				}
+			const key = keys[n]
+			const newData = data[key]
+			if(!newData) {
+				console.warn(`(store.getData) No data available with key: [${keys[n]}] with path: [${path}]`)
+				return null
 			}
 
-			tuple.data = data
-			tuple.key = keys[num]
-			tuple.parentKey = keys[num - 1]
-			tuple.watchers = watchers
+			data = newData
+			if(watchers) {
+				watchers = watchers.buffer ? watchers.buffer[key] : null
+			}
+		}
+
+		const tuple = {
+			data,
+			key: keys[num],
+			parentKey: keys[num - 1],
+			watchers
 		}
 
 		return tuple
