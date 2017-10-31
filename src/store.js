@@ -101,20 +101,33 @@ class Store
 			array.push(payload.value)
 		}
 
-		const watchers = tuple.watchers.buffer ? tuple.watchers.buffer[tuple.key] : null
-		if(!watchers) { return }
-
-		const funcs = watchers.funcs
+		const funcs = tuple.watchers.funcs
 		if(funcs) 
 		{
-			const payload = {
+			const payloadSet = {
 				action: "SET",
 				key: tuple.key,
 				value: array
 			}
-
 			for(let n = 0; n < funcs.length; n++) {
-				funcs[n](payload)
+				funcs[n](payloadSet)
+			}
+
+			const watchers = tuple.watchers.buffer[tuple.key]
+			if(watchers)
+			{
+				const funcs = watchers.funcs
+				if(funcs) 
+				{
+					const payloadAdd = {
+						action: "ADD",
+						key: (array.length - 1),
+						value: payload.value
+					}
+					for(let n = 0; n < funcs.length; n++) {
+						funcs[n](payloadAdd)
+					}
+				}
 			}
 		}
 	}
@@ -279,16 +292,14 @@ class Store
 		if(buffer)
 		{
 			const value = payload.value
-			if(value && typeof value === "object")
-			{
+			if(value && typeof value === "object") {
 				for(let key in buffer) {
 					payload.key = key
 					payload.value = (value[key] === undefined) ? null : value[key]
 					this.emitWatchers(payload, buffer[key])
 				}
 			}
-			else 
-			{
+			else {
 				payload.value = null
 				for(let key in buffer) {
 					payload.key = key
