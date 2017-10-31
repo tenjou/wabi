@@ -44,7 +44,8 @@ class Store
 	{
 		this.dispatch({
 			action: "REMOVE",
-			key
+			key,
+			value
 		})
 	}
 	
@@ -107,7 +108,7 @@ class Store
 			const payloadSet = {
 				action: "SET",
 				key: tuple.key,
-				value: array
+				value: tuple.data
 			}
 			for(let n = 0; n < funcs.length; n++) {
 				funcs[n](payloadSet)
@@ -137,12 +138,37 @@ class Store
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
 
-		const data = tuple.data
+		const data = payload.value ? tuple.data[tuple.key] : tuple.data
 		if(Array.isArray(data)) {
-			data.splice(parseInt(tuple.key), 1)
+			if(payload.value !== undefined) 
+			{
+				const index = data.indexOf(payload.value)
+				if(index === -1) { return }
+
+				data.splice(index, 1)
+				this.emitWatchers({
+					action: "REMOVE",
+					key: index
+				}, tuple.watchers.buffer[tuple.key])
+				return
+			}
+			else {
+				data.splice(parseInt(tuple.key), 1)
+			}
 		}
-		else {
-			delete data[tuple.key]
+		else 
+		{
+			if(payload.value !== undefined) {
+				delete data[payload.value]
+				this.emitWatchers({
+					action: "REMOVE",
+					key: payload.value
+				}, tuple.watchers.buffer[tuple.key])
+				return			
+			}
+			else {
+				delete data[tuple.key]
+			}
 		}
 
 		this.emit({
