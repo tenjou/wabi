@@ -63,6 +63,7 @@ const elementOpen = function(type, props)
 				node.props = props
 			}
 			
+			node.id = parent.index
 			node.type = type
 			node.element = element
 		}
