@@ -5,14 +5,14 @@ let stackIndex = 0
 let bodyNode = null
 let prevMountedElement = null
 
-const elementOpen = function(type, props)
+const elementOpen = function(type, props, srcElement)
 {
 	const parent = stack[stackIndex]
 
 	let node = parent.children[parent.index]
 	if(!node) 
 	{
-		const element = document.createElement(type)
+		const element = srcElement || document.createElement(type)
 		node = new VNode(parent.index, type, props, element, parent)
 
 		if(prevMountedElement) {
@@ -32,7 +32,7 @@ const elementOpen = function(type, props)
 	{
 		if(node.type !== type) 
 		{
-			const element = document.createElement(type)
+			const element = srcElement || document.createElement(type)
 
 			if(node.component) 
 			{
@@ -136,7 +136,7 @@ const elementClose = function(type)
 	const node = stack[stackIndex]
 	
 	if(node.type !== type) {
-		console.error("type-error")
+		console.error(`(Element.close) Unexpected element closed: ${type} but was expecting: ${node.type}`)
 	}
 
 	if(node.index !== node.children.length) {
@@ -158,11 +158,15 @@ const elementClose = function(type)
 	prevMountedElement = node.element
 }
 
-const elementVoid = function(type, props)
-{
+const elementVoid = function(type, props) {
 	const node = elementOpen(type, props)
 	elementClose(type)
+	return node
+}
 
+const element = function(element, props) {
+	const node = elementOpen(element.localName, props, element)
+	elementClose(element.localName)
 	return node
 }
 
@@ -483,6 +487,7 @@ export {
 	elementOpen, 
 	elementClose,
 	elementVoid,
+	element,
 	componentVoid,
 	text,
 	render,

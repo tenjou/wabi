@@ -5,6 +5,7 @@ export {
 	elementOpen,
 	elementClose,
 	elementVoid,
+	element,
 	componentVoid,
 	text,
 	render
