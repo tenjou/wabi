@@ -120,13 +120,9 @@ class Store
 				const funcs = watchers.funcs
 				if(funcs) 
 				{
-					const payloadAdd = {
-						action: "ADD",
-						key: (array.length - 1),
-						value: payload.value
-					}
+					payloadSet.value = array
 					for(let n = 0; n < funcs.length; n++) {
-						funcs[n](payloadAdd)
+						funcs[n](payloadSet)
 					}
 				}
 			}
@@ -147,8 +143,9 @@ class Store
 
 				data.splice(index, 1)
 				this.emitWatchers({
-					action: "REMOVE",
-					key: index
+					action: "SET",
+					key: tuple.key,
+					value: data
 				}, tuple.watchers.buffer[tuple.key])
 				return
 			}
