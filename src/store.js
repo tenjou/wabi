@@ -114,15 +114,18 @@ class Store
 				funcs[n](payloadSet)
 			}
 
-			const watchers = tuple.watchers.buffer[tuple.key]
-			if(watchers)
+			if(tuple.watchers)
 			{
-				const funcs = watchers.funcs
-				if(funcs) 
+				const watchers = tuple.watchers.buffer[tuple.key]
+				if(watchers)
 				{
-					payloadSet.value = array
-					for(let n = 0; n < funcs.length; n++) {
-						funcs[n](payloadSet)
+					const funcs = watchers.funcs
+					if(funcs) 
+					{
+						payloadSet.value = array
+						for(let n = 0; n < funcs.length; n++) {
+							funcs[n](payloadSet)
+						}
 					}
 				}
 			}
