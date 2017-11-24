@@ -114,9 +114,10 @@ class Store
 				funcs[n](payloadSet)
 			}
 
-			if(tuple.watchers)
+			const buffer = tuple.watchers.buffer
+			if(buffer)
 			{
-				const watchers = tuple.watchers.buffer[tuple.key]
+				const watchers = buffer[tuple.key]
 				if(watchers)
 				{
 					const funcs = watchers.funcs
@@ -138,22 +139,42 @@ class Store
 		if(!tuple) { return }
 
 		const data = payload.value ? tuple.data[tuple.key] : tuple.data
-		if(Array.isArray(data)) {
-			if(payload.value !== undefined) 
-			{
-				const index = data.indexOf(payload.value)
+		if(Array.isArray(data)) 
+		{
+			let index
+			if(payload.value !== undefined) {
+				index = data.indexOf(payload.value)
 				if(index === -1) { return }
-
 				data.splice(index, 1)
-				this.emitWatchers({
-					action: "SET",
-					key: tuple.key,
-					value: data
-				}, tuple.watchers.buffer[tuple.key])
-				return
 			}
 			else {
-				data.splice(parseInt(tuple.key), 1)
+				index = parseInt(tuple.key)
+				data.splice(index, 1)
+			}
+
+			const outPayload = {
+				action: "SET",
+				key: tuple.parentKey,
+				value: data
+			}
+			const watchers = tuple.watchers.funcs
+			if(watchers) {
+				for(let n = 0; n < watchers.length; n++) {
+					watchers[n](outPayload)
+				}
+			}
+
+			const buffer = tuple.watchers.buffer
+			for(let key in buffer) {
+				const keyIndex = parseInt(key)
+				if(index >= keyIndex && data.length > keyIndex) {
+					outPayload.key = key
+					outPayload.value = data[keyIndex]
+					const funcs = buffer[key].funcs
+					for(let n = 0; n < funcs.length; n++) {
+						funcs[n](outPayload)
+					}
+				}
 			}
 		}
 		else 
@@ -169,13 +190,13 @@ class Store
 			else {
 				delete data[tuple.key]
 			}
-		}
 
-		this.emit({
-			action: "SET",
-			key: tuple.parentKey,
-			value: tuple.data
-		}, tuple.watchers, "REMOVE", tuple.key, null)
+			this.emit({
+				action: "SET",
+				key: tuple.parentKey,
+				value: tuple.data
+			}, tuple.watchers, "REMOVE", tuple.key, null)
+		}
 	}
 
 	handle(data)
@@ -254,6 +275,7 @@ class Store
 		if(!path) { return }
 		
 		let watchers = this.watchers
+		let prevWatchers = null
 
 		const keys = path.split("/")
 		for(let n = 0; n < keys.length; n++) {
@@ -261,6 +283,7 @@ class Store
 				console.warn("(store.unwatch) Watcher can not be found for:", path)
 				return
 			}
+			prevWatchers = watchers
 			watchers = watchers.buffer[keys[n]]
 			if(!watchers) { return }
 		}
@@ -278,6 +301,10 @@ class Store
 		else {
 			funcs[index] = funcs[funcs.length - 1]
 			funcs.pop()
+		}
+
+		if(funcs.length === 0) {
+			delete prevWatchers.buffer[keys[keys.length - 1]]
 		}
 	}
 
