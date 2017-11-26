@@ -152,27 +152,48 @@ class Store
 				data.splice(index, 1)
 			}
 
-			const outPayload = {
+			const payloadOut = {
 				action: "SET",
-				key: tuple.parentKey,
-				value: data
-			}
-			const watchers = tuple.watchers.funcs
-			if(watchers) {
-				for(let n = 0; n < watchers.length; n++) {
-					watchers[n](outPayload)
+				key: null,
+				value: null
+			}	
+
+			if(payload.value)
+			{
+				payloadOut.key = tuple.key
+				payloadOut.value = data
+				
+				const buffer = tuple.watchers.buffer[tuple.key]
+				const funcs = buffer.funcs
+				for(let n = 0; n < funcs.length; n++) {
+					funcs[n](payloadOut)
 				}
 			}
-
-			const buffer = tuple.watchers.buffer
-			for(let key in buffer) {
-				const keyIndex = parseInt(key)
-				if(index >= keyIndex && data.length > keyIndex) {
-					outPayload.key = key
-					outPayload.value = data[keyIndex]
-					const funcs = buffer[key].funcs
-					for(let n = 0; n < funcs.length; n++) {
-						funcs[n](outPayload)
+			else
+			{
+				if(tuple.parentKey)
+				{
+					payloadOut.key = tuple.parentKey
+					payloadOut.value = data		
+	
+					const watchers = tuple.watchers.funcs
+					if(watchers) {
+						for(let n = 0; n < watchers.length; n++) {
+							watchers[n](payloadOut)
+						}
+					}
+				}
+	
+				const buffer = tuple.watchers.buffer				
+				for(let key in buffer) {
+					const keyIndex = parseInt(key)
+					if(index >= keyIndex && data.length > keyIndex) {
+						payloadOut.key = key
+						payloadOut.value = data[keyIndex]
+						const funcs = buffer[key].funcs
+						for(let n = 0; n < funcs.length; n++) {
+							funcs[n](payloadOut)
+						}
 					}
 				}
 			}
