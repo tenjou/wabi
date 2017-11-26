@@ -187,9 +187,10 @@ class Store
 				const buffer = tuple.watchers.buffer				
 				for(let key in buffer) {
 					const keyIndex = parseInt(key)
-					if(index >= keyIndex && data.length > keyIndex) {
+					if(keyIndex >= index && data.length > keyIndex) {
 						payloadOut.key = key
 						payloadOut.value = data[keyIndex]
+						console.log(payloadOut.key, payloadOut.value)
 						const funcs = buffer[key].funcs
 						for(let n = 0; n < funcs.length; n++) {
 							funcs[n](payloadOut)
