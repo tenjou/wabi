@@ -146,8 +146,8 @@ const elementClose = function(type)
 
 	if(!node.element.parentElement) {
 		const parent = stack[stackIndex - 1]
-		if(node.prevElement) {
-			parent.element.insertBefore(node.element, node.prevElement.nextSibling)
+		if((parent.children.length - 1) > node.id) {
+			parent.element.insertBefore(node.element, parent.children[node.id + 1].element)
 		}
 		else {
 			parent.element.appendChild(node.element)
