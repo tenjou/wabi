@@ -95,7 +95,7 @@ class Store
 			tuple.data[tuple.key] = array
 		}
 		else if(!Array.isArray(array)) {
-			console.warn("(store) Data at key '${payload.key}' is not an Array")
+			console.warn(`(store) Data at key '${payload.key}' is not an Array`)
 			return
 		}
 		else {
