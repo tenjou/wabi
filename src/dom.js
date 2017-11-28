@@ -39,6 +39,11 @@ const elementOpen = function(type, props, srcElement)
 				node.component.remove()
 				node.component = null
 
+				const nextIndex = parent.index + 1
+				if(parent.children.length > nextIndex) {
+					parent.element.insertBefore(element, parent.children[nextIndex].prevElement)
+				}
+
 				const children = node.children
 				for(let n = 0; n < children.length; n++) {
 					element.appendChild(children[n].element)
@@ -146,12 +151,7 @@ const elementClose = function(type)
 
 	if(!node.element.parentElement) {
 		const parent = stack[stackIndex - 1]
-		if((parent.children.length - 1) > node.id) {
-			parent.element.insertBefore(node.element, parent.children[node.id + 1].element)
-		}
-		else {
-			parent.element.appendChild(node.element)
-		}
+		parent.element.appendChild(node.element)
 	}
 
 	stackIndex--
