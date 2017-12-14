@@ -1,13 +1,27 @@
 import { update } from "./renderer"
 
-function Proxy(key, func) {
-	this.key = key
-	this.func = func
+class Proxy 
+{
+	constructor(key, func) {
+		this.key = key
+		this.func = func
+	}
 }
 
-function WatcherBuffer() {
-	this.funcs = []
-	this.buffer = null
+class WatcherBuffer 
+{
+	constructor() {
+		this.funcs = []
+		this.buffer = null
+	}
+}
+
+class RemoveInfo 
+{
+	constructor(path, func) {
+		this.path = path
+		this.func = func
+	}
 }
 
 class Store
@@ -16,7 +30,8 @@ class Store
 	{
 		this.data = {}
 		this.proxies = []
-		this.emitting = false
+		this.emitting = 0
+		this.removeWatchers = []
 
 		this.watchers = new WatcherBuffer()
 		this.watchers.buffer = {}
@@ -287,10 +302,15 @@ class Store
 		return watchers
 	}
 
-	// TODO: Remove empty watcher objects
 	unwatch(path, func)
 	{
 		if(!path) { return }
+
+		if(this.emitting) {
+			const removeInfo = new RemoveInfo(path, func)
+			this.removeWatchers.push(removeInfo)
+			return
+		}		
 		
 		let watchers = this.watchers
 		let prevWatchers = null
@@ -313,13 +333,8 @@ class Store
 			return		
 		}
 	
-		if(this.emitting) {
-			funcs.splice(index, 1)
-		}
-		else {
-			funcs[index] = funcs[funcs.length - 1]
-			funcs.pop()
-		}
+		funcs[index] = funcs[funcs.length - 1]
+		funcs.pop()
 
 		if(funcs.length === 0) {
 			delete prevWatchers.buffer[keys[keys.length - 1]]
@@ -330,7 +345,7 @@ class Store
 	{
 		if(!watchers) { return }
 
-		this.emitting = true
+		this.emitting++
 
 		const funcs = watchers.funcs
 		if(funcs) {
@@ -347,11 +362,24 @@ class Store
 			this.emitWatchers(payload, watchers)
 		}
 
-		this.emitting = false
+		this.emitting--
+
+		if(this.emitting === 0) 
+		{
+			if(this.removeWatchers.length > 0) {
+				for(let n = 0; n < this.removeWatchers.length; n++) {
+					const info = this.removeWatchers[n]
+					this.unwatch(info.path, info.func)
+				}
+				this.removeWatchers.length = 0
+			}			
+		}
 	}
 
 	emitWatchers(payload, watchers)
 	{
+		this.emitting++
+
 		const funcs = watchers.funcs
 		if(funcs) {
 			for(let n = 0; n < funcs.length; n++) {
@@ -378,6 +406,8 @@ class Store
 				}
 			}
 		}
+
+		this.emitting--
 	}
 
 	get(key)
