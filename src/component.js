@@ -105,15 +105,29 @@ WabiComponentInternal.prototype =
 				{
 					for(let key in prevBind)
 					{
+						if(value[key] === undefined) {
+							const func = this.bindFuncs[key]
+							store.unwatch(prevBind[key], func)
+							this.bindFuncs[key] = undefined
+						}
+					}
+
+					for(let key in value)
+					{
 						const bindPath = value[key]
 						if(prevBind[key] !== bindPath)
 						{
-							const func = this.bindFuncs[key]
+							let func = this.bindFuncs[key]
+							if(!func) {
+								func = (payload) => {
+									this.handleAction(key, payload.value)
+								}
+								this.bindFuncs[key] = func
+							}
 							store.unwatch(prevBind[key], func)
 							store.watch(bindPath, func)
+							this.$[key] = store.get(bindPath)
 						}
-
-						this.$[key] = store.get(bindPath)
 					}
 				}
 			}
