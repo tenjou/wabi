@@ -50,7 +50,7 @@ const elementOpen = function(type, props, srcElement)
 					else {
 						element.appendChild(node.component.base)
 						child.element = element
-						appendChildren(element, child.children)
+						appendChildren(node, element, child.children)
 					}
 				}	
 
@@ -61,10 +61,8 @@ const elementOpen = function(type, props, srcElement)
 			else 
 			{
 				const prevElement = prevNode.element
-
-				while(prevElement.firstChild) { 
-					element.appendChild(prevElement.firstChild)
-				}
+				const children = prevNode.children
+				appendElementChildren(element, children)
 
 				prevElement.parentElement.replaceChild(element, prevElement)
 
@@ -149,6 +147,21 @@ const appendChildren = (node, element, children) => {
 	}	
 }
 
+const appendElementChildren = (element, children) => 
+{
+	for(let n = 0; n < children.length; n++) {
+		const child = children[n]					
+		if(child.component) {	
+			child.element = element
+			element.appendChild(child.component.base)
+			appendElementChildren(element, child.children)
+		}
+		else {
+			element.appendChild(child.element)
+		}
+	}	
+}
+
 const elementClose = function(type)
 {
 	const node = stack[stackIndex]
@@ -162,8 +175,33 @@ const elementClose = function(type)
 	}
 	node.index = 0
 
-	if(!node.element.parentElement) {
-		appendElement(node.element, node.parent)
+	if(!node.element.parentElement) 
+	{
+		const parent = node.parent
+		const component = parent.component
+		if(component) {
+			if(node.id === 0) {
+				parent.element.insertBefore(node.element, component.base.nextSibling)
+			}
+			else {
+				const prev = parent.children[parent.index - 1]
+				parent.element.insertBefore(node.element, prev.element.nextSibling)
+			}
+		}
+		else {
+			if(node.id === (parent.children.length - 1)) {
+				parent.element.appendChild(node.element)
+			}
+			else {
+				const next = parent.children[node.id + 1]
+				if(next.component) {
+					parent.element.insertBefore(node.element, next.component.base)
+				}
+				else {
+					parent.element.insertBefore(node.element, next.element)
+				}
+			}
+		}
 	}
 
 	stackIndex--
@@ -415,22 +453,6 @@ const text = (text) =>
 	parent.index++
 
 	return node
-}
-
-const appendElement = (element, parent) => {
-	const component = parent.component
-	if(component) {
-		if(parent.id === 0) {
-			parent.element.insertBefore(element, component.base.nextSibling)
-		}
-		else {
-			const prev = parent.children[parent.index - 1]
-			parent.element.insertBefore(element, prev.element.nextSibling)
-		}
-	}
-	else {
-		parent.element.appendChild(element)
-	}	
 }
 
 const setProp = function(element, name, value) 
