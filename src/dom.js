@@ -1,24 +1,20 @@
-import { VNode } from "./VNode"
+import { VNode } from "./vnode"
 
-const stack = new Array(128)
+const stack = new Array(64)
+const components = {}
 let stackIndex = 0
 let bodyNode = null
-let prevMountedElement = null
 
 const elementOpen = function(type, props, srcElement)
 {
 	const parent = stack[stackIndex]
+	let prevNode = parent.children[parent.index]
+	let vnode = prevNode
 
-	let node = parent.children[parent.index]
-	if(!node) 
+	if(!prevNode) 
 	{
 		const element = srcElement || document.createElement(type)
-		node = new VNode(parent.index, type, props, element, parent)
-
-		if(prevMountedElement) {
-			node.prevElement = prevMountedElement
-			prevMountedElement = null
-		}
+		vnode = new VNode(parent.index, type, props, element, parent)
 
 		if(props) {
 			for(let key in props) {
@@ -26,38 +22,54 @@ const elementOpen = function(type, props, srcElement)
 			}
 		}
 
-		parent.children[parent.index] = node
+		vnode.props = props
+		parent.children[parent.index] = vnode
 	}
 	else 
 	{
-		if(node.type !== type) 
+		if(prevNode.type !== type) 
 		{
 			const element = srcElement || document.createElement(type)
 
-			if(node.component) 
+			if(prevNode.component) 
 			{
-				node.component.remove()
-				node.component = null
+				vnode = new VNode(prevNode.index, type, props, element, parent)
 
-				const nextIndex = parent.index + 1
-				if(parent.children.length > nextIndex) {
-					parent.element.insertBefore(element, parent.children[nextIndex].prevElement)
-				}
+				const children = prevNode.children
+				prevNode.children = vnode.children
+				vnode.children = children
 
-				const children = node.children
-				for(let n = 0; n < children.length; n++) {
-					element.appendChild(children[n].element)
-				}
+				for(let n = 0; n < children.length; n++) 
+				{
+					const child = children[n]
+					child.parent = vnode
+
+					if(!child.component) {
+						element.appendChild(child.element)
+					}
+					else {
+						element.appendChild(node.component.base)
+						child.element = element
+						appendChildren(element, child.children)
+					}
+				}	
+
+				removeComponent(prevNode)
+
+				prevNode.parent.children[prevNode.index] = vnode
 			}
 			else 
 			{
-				const prevElement = node.element
+				const prevElement = prevNode.element
 
 				while(prevElement.firstChild) { 
 					element.appendChild(prevElement.firstChild)
 				}
 
 				prevElement.parentElement.replaceChild(element, prevElement)
+
+				vnode.type = type
+				vnode.element = element
 			}
 
 			if(props) 
@@ -65,17 +77,13 @@ const elementOpen = function(type, props, srcElement)
 				for(let key in props) {
 					setProp(element, key, props[key])
 				}
-				node.props = props
+				vnode.props = props
 			}
-			
-			node.id = parent.index
-			node.type = type
-			node.element = element
 		}
 		else
 		{
-			const element = node.element
-			const prevProps = node.props
+			const element = prevNode.element
+			const prevProps = prevNode.props
 
 			if(props !== prevProps)
 			{
@@ -103,7 +111,7 @@ const elementOpen = function(type, props, srcElement)
 						}	
 					}
 
-					node.props = props
+					prevNode.props = props
 				}
 				else 
 				{
@@ -113,27 +121,32 @@ const elementOpen = function(type, props, srcElement)
 							unsetProp(element, key)
 						}
 
-						node.props = null
+						prevNode.props = null
 					}				
 				}
 			}
 		}
-
-		if(prevMountedElement) {
-			node.prevElement = prevMountedElement
-			prevMountedElement = null
-		}
-		else {
-			node.prevElement = null
-		}
 	}
-
 
 	parent.index++
 	stackIndex++
-	stack[stackIndex] = node
+	stack[stackIndex] = vnode
 
-	return node
+	return vnode
+}
+
+const appendChildren = (node, element, children) => {
+	for(let n = 0; n < children.length; n++) {
+		const child = children[n]
+		if(!child.component) {
+			element.appendChild(child.element)
+		}
+		else {
+			element.appendChild(node.component.base)
+			child.element = element
+			appendChildren(node, element, child.children)
+		}
+	}	
 }
 
 const elementClose = function(type)
@@ -150,12 +163,10 @@ const elementClose = function(type)
 	node.index = 0
 
 	if(!node.element.parentElement) {
-		const parent = stack[stackIndex - 1]
-		parent.element.appendChild(node.element)
+		appendElement(node.element, node.parent)
 	}
 
 	stackIndex--
-	prevMountedElement = node.element
 }
 
 const elementVoid = function(type, props) {
@@ -170,113 +181,81 @@ const element = function(element, props) {
 	return node
 }
 
-const componentVoid = function(componentCls, props)
+const componentVoid = (ctor, props) => 
 {
 	const parent = stack[stackIndex]
+	const node = parent.children[parent.index]
+	let component
+	let vnode
 
-	let node = parent.children[parent.index]
-	if(!node) {
-		return createComponent(componentCls, parent, node, props)		
-	}
-	else 
+	if(node) 
 	{
-		const component = node.component
-		if(component) 
+		component = node.component
+		if(component)
 		{
-			if(component.constructor !== componentCls) {
-				component.remove()
-				createComponent(componentCls, parent, node, props)
+			if(component.constructor === ctor) {
+				diffComponentProps(component, node, props)
+				vnode = node
 			}
 			else 
 			{
-				const prevProps = node.props
-				if(props !== prevProps) 
-				{
-					if(props)
-					{
-						if(prevProps)
-						{
-							for(let key in prevProps) 
-							{
-								if(props[key] === undefined) {
-									if(key[0] === "$") {
-										component[key] = component.state[key.slice(1)]
-									} 
-									else {
-										component[key] = null
-									}
-								}
-							}
+				vnode = createComponent(ctor, node, parent)
+				component = vnode.component
 
-							for(let key in props) {
-								const value = props[key]
-								if(component[key] !== value) {
-									component[key] = value
-								}
-							}
-						}
-						else
-						{
-							for(let key in props) {
-								component[key] = props[key]
-							}							
-						}
+				const children = node.children
+				node.children = vnode.children
+				vnode.children = children
 
-						node.props = props
-					}
-					else if(prevProps) 
-					{
-						for(let key in prevProps) {
-							if(key[0] === "$") {
-								component[key] = component.state[ket.slice(1)]
-							} 
-							else {
-								component[key] = null
-							}
-						}
+				vnode.element.insertBefore(component.base, node.component.base)
+				removeComponent(node)
 
-						node.props = null
+				for(let n = 0; n < children.length; n++) {
+					children[n].parent = vnode
+				}
+				parent.children[vnode.id] = vnode
+
+				if(props) {
+					for(let key in props) {
+						component[key] = props[key]
 					}
 				}
+			}			
+		}
+		else 
+		{
+			vnode = createComponent(ctor, node, parent)
+			component = vnode.component
 
-				if(component.dirty) 
-				{
-					parent.index++
-					stackIndex++
-					stack[stackIndex] = node
-					
-					component.render()
-					component.index = 0
-					component.dirty = false
-				
-					if(node.index !== node.children.length) {
-						removeUnusedNodes(node)
-					}
+			vnode.children.push(node)
+			vnode.element.insertBefore(component.base, node.element)
+			node.index = 0
+			node.id = 0
+			node.parent = vnode	
 
-					node.index = 0
+			parent.children[vnode.id] = vnode	
 
-					stackIndex--
+			if(props) {
+				for(let key in props) {
+					component[key] = props[key]
 				}
-				else {
-					parent.index++
-				}				
 			}
 		}
-		else {
-			return createComponent(componentCls, parent, node, props)
-		}
 	}
+	else 
+	{
+		vnode = createComponent(ctor, null, parent)
+		component = vnode.component
 
-	return node.component
-}
+		vnode.id = parent.children.length
+		parent.children.push(vnode)
+		parent.element.appendChild(component.base)
 
-const createComponent = function(componentCls, parent, node, props) 
-{
-	const component = new componentCls()
+		parent.children[vnode.id] = vnode			
 
-	if(props) {
-		for(let key in props) {
-			component[key] = props[key]
+		if(props) {
+			for(let key in props) {
+				component[key] = props[key]
+			}
 		}
 	}
 
@@ -284,36 +263,10 @@ const createComponent = function(componentCls, parent, node, props)
 		component.mount()
 	}
 
-	let vnode
-	if(node) 
-	{
-		if(node.component) {
-			vnode = node
-			vnode.index = 0
-		}
-		else {
-			vnode = new VNode(0, null, props, parent.element, parent)
-			vnode.children.push(node)
-			vnode.id = node.id
-			node.parent.children[node.id] = vnode
-			node.id = 0
-			node.index = 0
-			node.parent = vnode
-		}
-	}
-	else {
-		vnode = new VNode(0, null, props, parent.element, parent)
-		parent.children.push(vnode)
-	}
-
-	vnode.component = component
-	vnode.prevElement = prevMountedElement
-
 	parent.index++
 	stackIndex++
 	stack[stackIndex] = vnode
 
-	component.vnode = vnode
 	component.depth = stackIndex
 	component.render()
 	component.dirty = false
@@ -323,54 +276,161 @@ const createComponent = function(componentCls, parent, node, props)
 	}
 
 	vnode.index = 0
-
 	stackIndex--
 
 	return component
 }
 
-const text = function(txt)
+const diffComponentProps = (component, node, props) => 
+{
+	const prevProps = node.props
+	
+	if(props !== prevProps) 
+	{
+		if(props)
+		{
+			if(prevProps)
+			{
+				for(let key in prevProps) 
+				{
+					if(props[key] === undefined) {
+						if(key[0] === "$") {
+							component[key] = component.state[key.slice(1)]
+						} 
+						else {
+							component[key] = null
+						}
+					}
+				}
+
+				for(let key in props) {
+					const value = props[key]
+					if(component[key] !== value) {
+						component[key] = value
+					}
+				}
+			}
+			else
+			{
+				for(let key in props) {
+					component[key] = props[key]
+				}                            
+			}
+
+			node.props = props
+		}
+		else if(prevProps) 
+		{
+			for(let key in prevProps) {
+				if(key[0] === "$") {
+					component[key] = component.state[ket.slice(1)]
+				} 
+				else {
+					component[key] = null
+				}
+			}
+
+			node.props = null
+		}
+	}
+}
+
+const createComponent = (ctor, node, parent) => 
+{
+	const buffer = components[ctor.prototype.__componentIndex]
+	let component = buffer ? buffer.pop() : null
+	let vnode
+
+	if(!component) {
+		component = new ctor()
+		vnode = new VNode(0, null, null, parent.element, parent)
+		vnode.component = component	
+		component.vnode = vnode
+	}
+	else {
+		vnode = component.vnode
+	}
+
+	if(node) {
+		vnode.id = node.id
+	}
+	vnode.parent = parent
+	vnode.element = parent.element
+	return vnode
+}
+
+const removeComponent = (node) => 
+{
+	const component = node.component
+	const buffer = components[component.__componentIndex]
+	if(buffer) {
+		buffer.push(component)
+	}
+	else {
+		components[component.__componentIndex] = [ component ]
+	}
+
+	component.remove()
+	component.base.remove()
+	removeUnusedNodes(node)
+}
+
+const text = (text) =>
 {
 	const parent = stack[stackIndex]
 	let node = parent.children[parent.index]
-	if(!node) {
-		const element = document.createTextNode(txt)
-		const node = new VNode(parent.index, "#text", null, element, parent, null)
-		parent.children[parent.index] = node
-		parent.element.appendChild(element)		
-	}
-	else 
+
+	if(node) 
 	{
-		if(node.type !== "#text") 
+		if(node.type === "#text") {
+			if(node.element.nodeValue !== text) {
+				node.element.nodeValue = text
+			}
+		}
+		else 
 		{
-			const element = document.createTextNode(txt)
-			node.type = "#text"
-			
+			const element = document.createTextNode(text)
+
 			if(node.component) {
-				node.component.remove()
-				node.component = null
-				if(node.prevElement) {
-					parent.element.insertBefore(element, node.prevElement.nextSibling)
-				}
-				else {
-					parent.element.appendChild(element)
-				}
+				const vnodeNew = new VNode(parent.index, "#text", null, element, parent, null)
+				parent.children[parent.index] = vnodeNew				
+				node.element.insertBefore(element, node.component.base)
+				node.index = 0
+				removeComponent(node)
 			}
 			else {
 				node.element.parentElement.replaceChild(element, node.element)
+				node.type = "#text"
+				node.element = element
 			}
-
-			node.element = element
-			removeUnusedNodes(node)			
 		}
-		else if(node.element.nodeValue !== txt) {
-			node.element.nodeValue = txt
-		}
+	}
+	else {
+		const element = document.createTextNode(text)
+		const vnode = new VNode(parent.index, "#text", null, element, parent, null)
+		parent.children[parent.index] = vnode
+		parent.element.appendChild(element)	
 	}
 
 	parent.index++
 
 	return node
+}
+
+const appendElement = (element, parent) => {
+	const component = parent.component
+	if(component) {
+		if(parent.id === 0) {
+			parent.element.insertBefore(element, component.base.nextSibling)
+		}
+		else {
+			const prev = parent.children[parent.index - 1]
+			parent.element.insertBefore(element, prev.element.nextSibling)
+		}
+	}
+	else {
+		parent.element.appendChild(element)
+	}	
 }
 
 const setProp = function(element, name, value) 
@@ -437,7 +497,6 @@ const renderInstance = function(instance)
 	const vnode = instance.vnode
 	stackIndex = instance.depth
 	stack[instance.depth] = vnode
-	prevMountedElement = vnode.prevElement
 	instance.render()
 	instance.dirty = false
 
@@ -448,7 +507,7 @@ const renderInstance = function(instance)
 	vnode.index = 0
 }
 
-const removeUnusedNodes = function(node)
+const removeUnusedNodes = (node) =>
 {
 	const children = node.children
 	for(let n = node.index; n < children.length; n++) {
@@ -459,10 +518,10 @@ const removeUnusedNodes = function(node)
 	children.length = node.index
 }
 
-const removeNode = function(node)
+const removeNode = (node) =>
 {
 	if(node.component) {
-		node.component.remove()
+		removeComponent(node)
 	}
 	else {
 		if(node.element.parentElement) {
@@ -479,8 +538,12 @@ const removeNode = function(node)
 	node.children.length = 0
 }
 
-const removeAll = function() {
+const removeAll = () => {
 	removeUnusedNodes(bodyNode)
+}
+
+const getBodyNode = () => {
+	return bodyNode
 }
 
 export { 
@@ -492,5 +555,6 @@ export {
 	text,
 	render,
 	renderInstance,
-	removeAll
+	removeAll,
+	getBodyNode
 }

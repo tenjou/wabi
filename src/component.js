@@ -1,11 +1,14 @@
 import { update } from "./renderer"
 import { store } from "./store"
 
+let componentIndex = 0
+
 function WabiComponentInternal() 
 {
 	this.bindFuncs = {}
 	this.vnode = null
 	this.dirty = false
+	this.base = document.createTextNode("")
 
 	const currState = {}
 	for(let key in this.state) {
@@ -32,6 +35,11 @@ WabiComponentInternal.prototype =
 			this.unmount()
 		}
 
+		this.reset()
+	},
+
+	reset() 
+	{
 		if(typeof this._bind === "string") {
 			store.unwatch(this._bind, this.bindFuncs.value)
 		}
@@ -41,7 +49,13 @@ WabiComponentInternal.prototype =
 			}
 		}
 
-		this.dirty = false		
+		this._bind = null
+		this.dirty = false	
+		const currState = this.$
+		const initState = this.state
+		for(let key in currState) {
+			currState[key] = initState[key]
+		}		
 	},
 
 	handleAction(state, value) {
@@ -199,7 +213,7 @@ WabiComponentInternal.prototype =
 	}
 }
 
-const component = function(componentProto) 
+const component = (componentProto) =>
 {
 	function WabiComponent() {
 		WabiComponentInternal.call(this)
@@ -217,6 +231,8 @@ const component = function(componentProto)
 		}
 	}
 
+	proto.__componentIndex = componentIndex++
+
 	const states = proto.state
 	for(let key in states)
 	{
@@ -233,7 +249,6 @@ const component = function(componentProto)
 
 	WabiComponent.prototype = proto
 	WabiComponent.prototype.constructor = WabiComponent
-
 	return WabiComponent
 }
 

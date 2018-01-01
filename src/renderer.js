@@ -1,9 +1,6 @@
 import { VNode } from "./vnode"
-import { 
-	render, 
-	renderInstance,
-	removeAll
-} from "./dom"
+import { render, renderInstance, removeAll, getBodyNode } from "./dom"
+import dump from "./dump"
 
 const updateBuffer = []
 const routes = []
@@ -107,7 +104,7 @@ const updateRoute = function()
 		if(currRoute.readyFunc) {
 			currRoute.readyFunc()
 		}
-
+		
 		break
 	}
 
