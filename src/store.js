@@ -24,6 +24,8 @@ class RemoveInfo
 	}
 }
 
+let num = 0
+
 class Store
 {
 	constructor() 
@@ -259,7 +261,7 @@ class Store
 	watch(path, func)
 	{
 		if(!path) { return }
-		
+			
 		let watchers = this.watchers
 
 		const keys = path.split("/")
@@ -335,10 +337,6 @@ class Store
 	
 		funcs[index] = funcs[funcs.length - 1]
 		funcs.pop()
-
-		if(funcs.length === 0) {
-			delete prevWatchers.buffer[keys[keys.length - 1]]
-		}
 	}
 
 	emit(payload, watchers, action, key, value)
