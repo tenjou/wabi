@@ -72,11 +72,11 @@ class Store
 			this.globalProxy(data)
 		}
 		else {
-			this.handle(data)
+			this.handle(data, null)
 		}
 	}
 
-	performSet(payload)
+	performSet(payload, promise)
 	{
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
@@ -84,24 +84,48 @@ class Store
 		if(payload.key) 
 		{
 			tuple.data[tuple.key] = payload.value
-			this.emit({
-				action: "SET",
-				key: tuple.parentKey,
-				value: tuple.data
-			}, tuple.watchers, "SET", tuple.key, payload.value)
+
+			if(promise) {
+				promise.then((resolve, reject) => {
+					this.emit({
+						action: "SET",
+						key: tuple.parentKey,
+						value: tuple.data
+					}, tuple.watchers, "SET", tuple.key, payload.value)
+				})
+			}
+			else {
+				this.emit({
+					action: "SET",
+					key: tuple.parentKey,
+					value: tuple.data
+				}, tuple.watchers, "SET", tuple.key, payload.value)				
+			}
 		}
 		else 
 		{
 			this.data = payload.value
-			this.emitWatchers({
-				action: "SET",
-				key: "",
-				value: payload.value
-			}, this.watchers)
+
+			if(promise) {
+				promise.then((resolve, reject) => {
+					this.emitWatchers({
+						action: "SET",
+						key: "",
+						value: payload.value
+					}, this.watchers)
+				})
+			}
+			else {
+				this.emitWatchers({
+					action: "SET",
+					key: "",
+					value: payload.value
+				}, this.watchers)				
+			}
 		}
 	}
 
-	performAdd(payload)
+	performAdd(payload, promise)
 	{
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
@@ -150,7 +174,7 @@ class Store
 		}
 	}
 
-	performRemove(payload)
+	performRemove(payload, promise)
 	{
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
@@ -234,7 +258,7 @@ class Store
 		}
 	}
 
-	handle(data)
+	handle(data, promise)
 	{
 		for(let n = 0; n < this.proxies.length; n++) {
 			const proxy = this.proxies[n]
@@ -247,13 +271,13 @@ class Store
 
 		switch(data.action) {
 			case "SET": 
-				this.performSet(data)
+				this.performSet(data, promise)
 				break
 			case "ADD":
-				this.performAdd(data)
+				this.performAdd(data, promise)
 				break
 			case "REMOVE":
-				this.performRemove(data)
+				this.performRemove(data, promise)
 				break
 		}
 	}
