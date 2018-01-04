@@ -24,8 +24,19 @@ const elementOpen = function(type, props, srcElement)
 
 		vnode.props = props
 		
-		if(parent.component && parent.index < (parent.children.length - 1)) {
-			parent.element.insertBefore(element, parent.component.base.nextSibling)
+		if(parent.component) {
+			if(parent.index > 0) {
+				const prev = parent.children[parent.index - 1]
+				if(prev.component) {
+					parent.element.insertBefore(element, prev.component.base.nextSibling)
+				}
+				else {
+					parent.element.insertBefore(element, prev.element.nextSibling)
+				}
+			}
+			else {
+				parent.element.insertBefore(element, parent.component.base.nextSibling)
+			}
 		}
 		else {
 			parent.element.appendChild(element)
