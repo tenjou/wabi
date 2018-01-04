@@ -220,10 +220,6 @@ const componentVoid = (ctor, props) =>
 		diffComponentProps(component, vnode, props)
 	}
 
-	if(component.mount) {
-		component.mount()
-	}
-
 	parent.index++
 	stackIndex++
 	stack[stackIndex] = vnode
@@ -303,6 +299,10 @@ const createComponent = (ctor) =>
 	if(!component) {
 		component = new ctor()
 	}
+
+	if(component.mount) {
+		component.mount()
+	}	
 
 	component.dirty = true
 	return component
