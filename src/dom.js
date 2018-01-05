@@ -14,24 +14,24 @@ const elementOpen = function(type, props, srcElement)
 	if(!prevNode) 
 	{
 		const element = srcElement || document.createElement(type)
-		vnode = new VNode(parent.index, type, props, element)
+		vnode = new VNode(parent.index, type, null, element)
 
 		if(props) {
 			for(let key in props) {
 				setProp(element, key, props[key])
 			}
+			vnode.props = props
 		}
-
-		vnode.props = props
 		
 		if(parent.component) {
 			if(parent.index > 0) {
-				const prev = parent.children[parent.index - 1]
-				if(prev.component) {
-					parent.element.insertBefore(element, prev.component.base.nextSibling)
+				const parentParent = stack[stackIndex - 1]
+				const parentNext = parentParent.children[parent.id + 1]
+				if(parentNext && parentNext.component) {
+					parent.element.insertBefore(element, parentNext.component.base)
 				}
 				else {
-					parent.element.insertBefore(element, prev.element.nextSibling)
+					parent.element.appendChild(element)
 				}
 			}
 			else {
