@@ -24,8 +24,6 @@ class RemoveInfo
 	}
 }
 
-let num = 0
-
 class Store
 {
 	constructor() 
@@ -39,8 +37,7 @@ class Store
 		this.watchers.buffer = {}
 	}
 
-	set(key, value)
-	{
+	set(key, value) {
 		this.dispatch({
 			action: "SET",
 			key,
@@ -48,8 +45,7 @@ class Store
 		})
 	}
 
-	add(key, value)
-	{
+	add(key, value) {
 		this.dispatch({
 			action: "ADD",
 			key,	
@@ -57,12 +53,18 @@ class Store
 		})
 	}
 
-	remove(key, value)
-	{
+	remove(key, value) {
 		this.dispatch({
 			action: "REMOVE",
 			key,
 			value
+		})
+	}
+
+	update(key, value) {
+		this.dispatch({
+			action: "UPDATE",
+			key
 		})
 	}
 	
@@ -143,30 +145,27 @@ class Store
 			array.push(payload.value)
 		}
 
-		const funcs = tuple.watchers.funcs
-		if(funcs) 
-		{
-			const payloadSet = {
-				action: "SET",
-				key: tuple.key,
-				value: tuple.data
-			}
-			for(let n = 0; n < funcs.length; n++) {
-				funcs[n](payloadSet)
-			}
-
-			const buffer = tuple.watchers.buffer
-			if(buffer)
-			{
-				const watchers = buffer[tuple.key]
-				if(watchers)
-				{
-					const funcs = watchers.funcs
-					if(funcs) 
-					{
-						payloadSet.value = array
-						for(let n = 0; n < funcs.length; n++) {
-							funcs[n](payloadSet)
+		if(tuple.watchers) {
+			const funcs = tuple.watchers.funcs
+			if(funcs) {
+				const payloadSet = {
+					action: "SET",
+					key: tuple.key,
+					value: tuple.data
+				}
+				for(let n = 0; n < funcs.length; n++) {
+					funcs[n](payloadSet)
+				}
+				const buffer = tuple.watchers.buffer
+				if(buffer) {
+					const watchers = buffer[tuple.key]
+					if(watchers) {
+						const funcs = watchers.funcs
+						if(funcs) {
+							payloadSet.value = array
+							for(let n = 0; n < funcs.length; n++) {
+								funcs[n](payloadSet)
+							}
 						}
 					}
 				}
@@ -258,17 +257,21 @@ class Store
 		}
 	}
 
-	handle(data, promise)
-	{
-		for(let n = 0; n < this.proxies.length; n++) {
-			const proxy = this.proxies[n]
-			if(data.key.indexOf(proxy.key) === 0) {
-				if(proxy.func(data)) {
-					return
-				}
-			}
-		}
+	performUpdate(payload) {
+		const tuple = this.getData(payload.key)
+		if(!tuple) { return }
+		if(!tuple.watchers) { return }
+		
+		const watchers = tuple.watchers.buffer[tuple.key]
+		if(!watchers) { return }
+		this.emitWatchers({
+			action: "SET",
+			key: payload.key,
+			value: tuple.data[tuple.key]
+		}, watchers)
+	}
 
+	handle(data, promise) {
 		switch(data.action) {
 			case "SET": 
 				this.performSet(data, promise)
@@ -279,7 +282,19 @@ class Store
 			case "REMOVE":
 				this.performRemove(data, promise)
 				break
+			case "UPDATE":
+				this.performUpdate(data, promise)
+				break
 		}
+
+		for(let n = 0; n < this.proxies.length; n++) {
+			const proxy = this.proxies[n]
+			if(data.key.indexOf(proxy.key) === 0) {
+				if(proxy.func(data)) {
+					return
+				}
+			}
+		}		
 	}
 
 	watch(path, func)
