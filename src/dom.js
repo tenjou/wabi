@@ -5,16 +5,15 @@ const components = {}
 let stackIndex = 0
 let bodyNode = null
 
-const elementOpen = function(type, props, srcElement)
-{
+const elementOpen = (type, props, srcElement) => {
 	const parent = stack[stackIndex]
 	let prevNode = parent.children[parent.index]
 	let vnode = prevNode
 
-	if(!prevNode) 
-	{
+	if(!prevNode) {
 		const element = srcElement || document.createElement(type)
 		vnode = new VNode(parent.index, type, null, element)
+		element.__vnode = vnode
 
 		if(props) {
 			for(let key in props) {
@@ -46,9 +45,9 @@ const elementOpen = function(type, props, srcElement)
 	}
 	else 
 	{
-		if(vnode.type !== type) 
-		{
+		if(vnode.type !== type) {
 			const element = srcElement || document.createElement(type)
+			element.__vnode = vnode
 
 			if(vnode.component) {
 				vnode.element.replaceChild(element, vnode.component.base)
@@ -127,8 +126,7 @@ const elementOpen = function(type, props, srcElement)
 	return vnode
 }
 
-const appendChildren = (element, children) => 
-{
+const appendChildren = (element, children) => {
 	for(let n = 0; n < children.length; n++) {
 		const child = children[n]
 		if(child.component) {
@@ -142,8 +140,7 @@ const appendChildren = (element, children) =>
 	}	
 }
 
-const elementClose = function(type)
-{
+const elementClose = (type) => {
 	const node = stack[stackIndex]
 	
 	if(node.type !== type) {
@@ -169,17 +166,14 @@ const element = (element, props) => {
 	return node
 }
 
-const componentVoid = (ctor, props) => 
-{
+const componentVoid = (ctor, props) => {
 	const parent = stack[stackIndex]
 	let vnode = parent.children[parent.index]
 	let component
 
-	if(vnode) 
-	{
+	if(vnode) {
 		component = vnode.component
-		if(component)
-		{
+		if(component) {
 			if(component.constructor === ctor) {
 				diffComponentProps(component, vnode, props)
 			}
@@ -193,8 +187,7 @@ const componentVoid = (ctor, props) =>
 				diffComponentProps(component, vnode, props)
 			}	
 		}
-		else
-		{
+		else {
 			const vnodeNew = new VNode(vnode.id, null, null, parent.element)
 			component = createComponent(ctor)
 			component.vnode = vnodeNew
@@ -238,8 +231,7 @@ const componentVoid = (ctor, props) =>
 	return component
 }
 
-const diffComponentProps = (component, node, props) => 
-{
+const diffComponentProps = (component, node, props) => {
 	const prevProps = node.props
 	
 	if(props !== prevProps) 
@@ -292,24 +284,20 @@ const diffComponentProps = (component, node, props) =>
 	}
 }
 
-const createComponent = (ctor) => 
-{
+const createComponent = (ctor) => {
 	const buffer = components[ctor.prototype.__componentIndex]
 	let component = buffer ? buffer.pop() : null
 	if(!component) {
 		component = new ctor()
 	}
-
 	if(component.mount) {
 		component.mount()
 	}	
-
 	component.dirty = true
 	return component
 }
 
-const removeComponent = (component) => 
-{
+const removeComponent = (component) => {
 	const buffer = components[component.__componentIndex]
 	if(buffer) {
 		buffer.push(component)
@@ -317,7 +305,6 @@ const removeComponent = (component) =>
 	else {
 		components[component.__componentIndex] = [ component ]
 	}
-
 	component.remove()
 	component.base.remove()
 }
@@ -362,8 +349,7 @@ const text = (text) =>
 	return vnode
 }
 
-const setProp = (element, name, value) =>
-{
+const setProp = (element, name, value) => {
 	if(name === "class") {
 		element.className = value
 	}
@@ -387,8 +373,7 @@ const setProp = (element, name, value) =>
 	}
 }
 
-const unsetProp = function(element, name) 
-{
+const unsetProp = (element, name) => {
 	if(name === "class") {
 		element.className = ""
 	}
@@ -403,10 +388,10 @@ const unsetProp = function(element, name)
 	}	
 }
 
-const render = function(component, parentElement)
-{
+const render = (component, parentElement) => {
 	if(!bodyNode) {
 		bodyNode = new VNode(0, "body", null, parentElement)
+		parentElement.__vnode = bodyNode
 	}
 	
 	stackIndex = 0
@@ -421,10 +406,10 @@ const render = function(component, parentElement)
 	bodyNode.index = 0
 }
 
-const renderInstance = function(instance)
-{
+const renderInstance = (instance) => {
 	const vnode = instance.vnode
 	stackIndex = instance.depth
+	stack[instance.depth - 1] = vnode.element.__vnode
 	stack[instance.depth] = vnode
 	instance.render()
 	instance.dirty = false
@@ -432,7 +417,6 @@ const renderInstance = function(instance)
 	if(vnode.index !== vnode.children.length) {
 		removeUnusedNodes(vnode)
 	}
-
 	vnode.index = 0
 }
 
