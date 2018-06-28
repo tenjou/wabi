@@ -1,4 +1,5 @@
-const lastSegment = function(str)
+
+const lastSegment = (str) =>
 {
 	const index = str.lastIndexOf(".")
 	if(index === -1) { return null }
@@ -6,7 +7,7 @@ const lastSegment = function(str)
 	return str.slice(index + 1)
 }
 
-const selectElementContents = function(node)
+const selectElementContents = (node) =>
 {
 	const range = document.createRange()
 	range.selectNodeContents(node)
