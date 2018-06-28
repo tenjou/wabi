@@ -18,7 +18,7 @@ export {
 } from "./src/renderer"
 
 export { 
-	store, lastSegment
+	store
 } from "./src/store"
 
 export {
