@@ -10,8 +10,8 @@
 	"main": "index.js",
 	"scripts": {
 		"build": "npm run build:default & npm run build:uglify",
-		"build:default": "build-replica --input src --concat build/wabi.js",
-		"build:uglify": "build-replica --input src --concat build/wabi.min.js --uglify"
+		"build:default": "build-replica -i ./index.js --concat build/wabi.js",
+		"build:uglify": "build-replica -i ./index.js --concat build/wabi.min.js --uglify"
 	},
 	"keywords": [
 		"ui",
