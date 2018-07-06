@@ -30,7 +30,7 @@ const elementOpen = (type, props, srcElement) => {
 					parent.element.insertBefore(element, parentNext.component.base)
 				}
 				else {
-					parent.element.appendChild(element)
+					parent.element.insertBefore(element, parent.children[parent.index - 1].element.nextSibling)
 				}
 			}
 			else {
