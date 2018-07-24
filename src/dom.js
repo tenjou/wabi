@@ -368,6 +368,9 @@ const setProp = (element, name, value) => {
 	else if(name[0] === "o" && name[1] === "n") {
 		element[name] = value
 	} 
+	else if(typeof element[name] === "boolean") {
+		element[name] = true
+	}	
 	else {
 		element.setAttribute(name, value)
 	}
@@ -383,6 +386,9 @@ const unsetProp = (element, name) => {
 	else if(name[0] === "o" && name[1] === "n") {
 		element[name] = null
 	} 
+	else if(typeof element[name] === "boolean") {
+		element[name] = false
+	}
 	else {
 		element.removeAttribute(name)
 	}	
