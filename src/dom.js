@@ -51,7 +51,7 @@ const elementOpen = (type, props, srcElement) => {
 
 			if(vnode.component) {
 				vnode.element.replaceChild(element, vnode.component.base)
-				removeComponent(vnode.component)
+				removeComponent(vnode)
 				vnode.component = null
 				appendChildren(element, vnode.children)	
 			}
@@ -180,11 +180,13 @@ const componentVoid = (ctor, props) => {
 			else {
 				const newComponent = createComponent(ctor)
 				newComponent.vnode = vnode
-				vnode.component = newComponent
 				vnode.element.replaceChild(newComponent.base, component.base)
-				removeComponent(component)
+				removeComponent(vnode)
 				component = newComponent
-				diffComponentProps(component, vnode, props)
+				vnode.component = newComponent
+				for(let key in props) {
+					newComponent[key] = props[key]
+				}
 			}	
 		}
 		else {
@@ -297,14 +299,23 @@ const createComponent = (ctor) => {
 	return component
 }
 
-const removeComponent = (component) => {
+const removeComponent = (vnode) => {
+	const props = vnode.props
+	const component = vnode.component
 	const buffer = components[component.__componentIndex]
+
 	if(buffer) {
 		buffer.push(component)
 	}
 	else {
 		components[component.__componentIndex] = [ component ]
 	}
+
+	for(let key in props) {
+		component[key] = null
+	}
+	vnode.props = null
+
 	component.remove()
 	component.base.remove()
 }
@@ -326,7 +337,7 @@ const text = (text) =>
 			const element = document.createTextNode(text)
 			if(vnode.component) {			
 				vnode.element.replaceChild(element, vnode.component.base)
-				removeComponent(vnode.component)
+				removeComponent(vnode)
 				vnode.component = null
 			}
 			else {
@@ -440,7 +451,7 @@ const removeUnusedNodes = (node) =>
 const removeNode = (node) =>
 {
 	if(node.component) {
-		removeComponent(node.component)
+		removeComponent(node)
 	}
 	else {
 		if(node.element.parentElement) {
