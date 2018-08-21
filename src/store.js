@@ -259,9 +259,8 @@ class Store
 
 	performUpdate(payload) {
 		const tuple = this.getData(payload.key)
-		if(!tuple) { return }
-		if(!tuple.watchers) { return }
-		
+		if(!tuple || !tuple.watchers || !tuple.watchers.buffer) { return }
+
 		const watchers = tuple.watchers.buffer[tuple.key]
 		if(!watchers) { return }
 		this.emitWatchers({

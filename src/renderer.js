@@ -1,5 +1,4 @@
-import { VNode } from "./vnode"
-import { render, renderInstance, removeAll, getBodyNode } from "./dom"
+import { render, renderInstance, removeAll } from "./dom"
 import dump from "./dump"
 
 const updateBuffer = []
@@ -95,11 +94,12 @@ const updateRoute = function()
 
 		currRoute = routeItem
 		
+		let props = null
 		if(currRoute.enterFunc) {
-			currRoute.enterFunc(currRouteResult)
+			props = currRoute.enterFunc(currRouteResult)
 		}
 
-		render(currRoute.component, document.body)
+		render(currRoute.component, document.body, props)
 
 		if(currRoute.readyFunc) {
 			currRoute.readyFunc()

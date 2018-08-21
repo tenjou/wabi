@@ -405,7 +405,7 @@ const unsetProp = (element, name) => {
 	}	
 }
 
-const render = (component, parentElement) => {
+const render = (component, parentElement, props) => {
 	if(!bodyNode) {
 		bodyNode = new VNode(0, "body", null, parentElement)
 		parentElement.__vnode = bodyNode
@@ -414,7 +414,7 @@ const render = (component, parentElement) => {
 	stackIndex = 0
 	stack[0] = bodyNode
 
-	componentVoid(component)
+	componentVoid(component, props)
 
 	if(bodyNode.index !== bodyNode.children.length) {
 		removeUnusedNodes(bodyNode)
