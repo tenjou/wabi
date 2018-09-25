@@ -86,8 +86,6 @@ const updateRoute = function()
 			if(currRouteResult.length === 0) { continue }
 		}
 
-		if(currRoute === routeItem) { break }
-
 		if(currRoute && currRoute.exitFunc) {
 			currRoute.exitFunc()
 		}
