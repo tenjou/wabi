@@ -64,12 +64,8 @@ const route = function(regexp, component, enterFunc, exitFunc, readyFunc) {
 	needUpdateRoute = true
 }
 
-const updateRoute = function() 
-{
-	url = document.location.hash
-	if(!url) {
-		url = "/"
-	}
+const updateRoute = function() {
+	url = document.location.pathname + document.location.hash
 	currRouteResult.length = 0
 
 	let result
