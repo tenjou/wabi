@@ -202,7 +202,7 @@ const componentVoid = (ctor, props) => {
 			vnode.parent = vnodeNew
 			vnode = vnodeNew
 
-			diffComponentProps(component, vnode, props)
+			diffComponentProps(component, vnode, props)			
 		}
 	}
 	else {
@@ -212,7 +212,11 @@ const componentVoid = (ctor, props) => {
 		vnode.component = component
 		parent.children.push(vnode)
 		parent.element.appendChild(component.base)	
-		diffComponentProps(component, vnode, props)
+		diffComponentProps(component, vnode, props)	
+	}
+
+	if(component.mounted) {
+		component.mounted()
 	}
 
 	parent.index++
@@ -274,7 +278,7 @@ const diffComponentProps = (component, node, props) => {
 		{
 			for(let key in prevProps) {
 				if(key[0] === "$") {
-					component[key] = component.state[ket.slice(1)]
+					component[key] = component.state[key.slice(1)]
 				} 
 				else {
 					component[key] = null

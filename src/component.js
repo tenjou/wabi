@@ -18,10 +18,10 @@ function WabiComponentInternal()
 	this.$ = currState
 }
 
-WabiComponentInternal.prototype = 
-{
+WabiComponentInternal.prototype = {
 	_bind: null,
 	mount: null,
+	mounted: null,
 	unmount: null,
 	render: null,
 
@@ -29,8 +29,7 @@ WabiComponentInternal.prototype =
 		value: null
 	},
 
-	remove() 
-	{
+	remove() {
 		if(this.unmount) {
 			this.unmount()
 		}
@@ -38,8 +37,7 @@ WabiComponentInternal.prototype =
 		this.reset()
 	},
 
-	reset() 
-	{
+	reset() {
 		if(typeof this._bind === "string") {
 			store.unwatch(this._bind, this.bindFuncs.value)
 		}
