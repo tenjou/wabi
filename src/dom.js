@@ -184,6 +184,7 @@ const componentVoid = (ctor, props) => {
 				removeComponent(vnode)
 				component = newComponent
 				vnode.component = newComponent
+				vnode.props = props
 				for(let key in props) {
 					newComponent[key] = props[key]
 				}
