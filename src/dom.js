@@ -18,9 +18,9 @@ const elementOpen = (type, props, srcElement) => {
 		if(props) {
 			for(let key in props) {
 				setProp(element, key, props[key])
-			}
-			vnode.props = props
+			}	
 		}
+		vnode.props = props
 		
 		if(parent.component) {
 			if(parent.index > 0) {
@@ -68,8 +68,8 @@ const elementOpen = (type, props, srcElement) => {
 				for(let key in props) {
 					setProp(element, key, props[key])
 				}
-				vnode.props = props
 			}
+			vnode.props = props
 		}
 		else
 		{
