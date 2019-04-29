@@ -1,5 +1,6 @@
 import { VNode } from "./vnode"
 
+const namespaceSVG = "http://www.w3.org/2000/svg"
 const stack = new Array(64)
 const components = {}
 let stackIndex = 0
@@ -11,7 +12,14 @@ const elementOpen = (type, props, srcElement) => {
 	let vnode = prevNode
 
 	if(!prevNode) {
-		const element = srcElement || document.createElement(type)
+		let element
+		if(srcElement) {
+			element = srcElement
+		}
+		else {
+			const namespace = (type === "svg") ? namespaceSVG : parent.element.namespaceURI
+			element = document.createElementNS(namespace, type)
+		}
 		vnode = new VNode(parent.index, type, null, element)
 		element.__vnode = vnode
 
@@ -46,7 +54,14 @@ const elementOpen = (type, props, srcElement) => {
 	else 
 	{
 		if(vnode.type !== type) {
-			const element = srcElement || document.createElement(type)
+			let element
+			if(srcElement) {
+				element = srcElement
+			}
+			else {
+				const namespace = (type === "svg") ? namespaceSVG : parent.element.namespaceURI
+				element = document.createElementNS(namespace, type)
+			}
 			element.__vnode = vnode
 
 			if(vnode.component) {
@@ -385,7 +400,7 @@ const setProp = (element, name, value) => {
 		element[name] = value
 	} 
 	else if(typeof element[name] === "boolean") {
-		element[name] = true
+		element[name] = value
 	}	
 	else {
 		element.setAttribute(name, value)
