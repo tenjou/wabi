@@ -198,8 +198,7 @@ class Store
 				value: null
 			}	
 
-			if(payload.value)
-			{
+			if(payload.value) {
 				payloadOut.key = tuple.key
 				payloadOut.value = data
 				
@@ -209,34 +208,33 @@ class Store
 					funcs[n](payloadOut)
 				}
 			}
-			else
-			{
-				if(tuple.parentKey)
-				{
+			else {
+				if(tuple.parentKey) {
 					payloadOut.key = tuple.parentKey
-					payloadOut.value = data		
-	
-					const watchers = tuple.watchers.funcs
-					if(watchers) {
+					payloadOut.value = data
+
+					if(tuple.watchers) {
+						const watchers = tuple.watchers.funcs
 						for(let n = 0; n < watchers.length; n++) {
 							watchers[n](payloadOut)
 						}
 					}
 				}
 	
-				const buffer = tuple.watchers.buffer				
-				for(let key in buffer) {
-					const keyIndex = parseInt(key)
-					if(keyIndex >= index && data.length > keyIndex) {
-						payloadOut.key = key
-						payloadOut.value = data[keyIndex]
-						this.emitWatchers(payloadOut, buffer[key])
+				if(tuple.watchers) {
+					const buffer = tuple.watchers.buffer				
+					for(let key in buffer) {
+						const keyIndex = key | 0
+						if(keyIndex >= index && data.length >= keyIndex) {
+							payloadOut.key = key
+							payloadOut.value = data[keyIndex]
+							this.emitWatchers(payloadOut, buffer[key])
+						}
 					}
 				}
 			}
 		}
-		else 
-		{
+		else {
 			if(payload.value !== undefined) {
 				delete data[payload.value]
 				this.emitWatchers({
