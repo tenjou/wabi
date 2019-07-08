@@ -1,5 +1,4 @@
 import { render, renderInstance, removeAll } from "./dom"
-import dump from "./dump"
 
 const updateBuffer = []
 const routes = []
@@ -17,8 +16,7 @@ function Route(regexp, component, enterFunc, exitFunc, readyFunc) {
 	this.readyFunc = readyFunc || null
 }
 
-const update = function(instance)
-{
+const update = function(instance) {
 	if(instance.dirty) { return }
 	instance.dirty = true
 
@@ -26,8 +24,7 @@ const update = function(instance)
 	needUpdate = true
 }
 
-const renderLoop = function()
-{
+const renderLoop = function() {
 	if(needUpdate) {
 		updateRender()
 	}
@@ -39,8 +36,7 @@ const renderLoop = function()
 	window.requestAnimationFrame(renderLoop)
 }
 
-const updateRender = function()
-{
+const updateRender = function() {
 	updateBuffer.sort(sortByDepth)
 
 	for(let n = 0; n < updateBuffer.length; n++) 
@@ -69,8 +65,7 @@ const updateRoute = function() {
 	currRouteResult.length = 0
 
 	let result
-	for(let n = 0; n < routes.length; n++)
-	{
+	for(let n = 0; n < routes.length; n++) {
 		const routeItem = routes[n]
 
 		if(routeItem.regexp) {
@@ -98,7 +93,6 @@ const updateRoute = function() {
 		if(currRoute.readyFunc) {
 			currRoute.readyFunc()
 		}
-		
 		break
 	}
 
@@ -109,8 +103,7 @@ const updateRoute = function() {
 	needUpdateRoute = false
 }
 
-const clearRoutes = function(remove) 
-{
+const clearRoutes = function(remove) {
 	routes.length = 0
 	currRoute = null
 
@@ -119,11 +112,25 @@ const clearRoutes = function(remove)
 	}
 }
 
+const onDomLoad = () => {
+	if((document.readyState === "interactive" || document.readyState === "complete")) {
+		renderLoop()
+		return
+	}
+
+	const callbackFunc = (event) => {
+		renderLoop()
+		window.removeEventListener("DOMContentLoaded", callbackFunc)
+	}
+
+	window.addEventListener("DOMContentLoaded", callbackFunc)
+}
+
 window.addEventListener("hashchange", () => {
 	updateRoute()
 })
 
-renderLoop()
+onDomLoad(renderLoop)
 
 export { 
 	update,
