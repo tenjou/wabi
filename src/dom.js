@@ -184,6 +184,7 @@ const element = (element, props) => {
 const componentVoid = (ctor, props) => {
 	const parent = stack[stackIndex]
 	let vnode = parent.children[parent.index]
+	let mounted = true
 	let component
 
 	if(vnode) {
@@ -191,6 +192,7 @@ const componentVoid = (ctor, props) => {
 		if(component) {
 			if(component.constructor === ctor) {
 				diffComponentProps(component, vnode, props)
+				mounted = false
 			}
 			else {
 				const newComponent = createComponent(ctor)
@@ -231,7 +233,7 @@ const componentVoid = (ctor, props) => {
 		diffComponentProps(component, vnode, props)	
 	}
 
-	if(component.mounted) {
+	if(mounted && component.mounted) {
 		component.mounted()
 	}
 
