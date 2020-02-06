@@ -61,8 +61,12 @@ const route = function(regexp, component, enterFunc, exitFunc, readyFunc) {
 }
 
 const updateRoute = function() {
-	url = document.location.pathname + document.location.hash
+	needUpdateRoute = false
+
 	currRouteResult.length = 0
+	url = (document.location.protocol === "file:") ?
+		"/" + document.location.hash :
+		document.location.pathname + document.location.hash
 
 	let result
 	for(let n = 0; n < routes.length; n++) {
@@ -89,18 +93,15 @@ const updateRoute = function() {
 		}
 
 		render(currRoute.component, document.body, props)
-
-		if(currRoute.readyFunc) {
-			currRoute.readyFunc()
-		}
 		break
 	}
 
 	if(!currRoute) {
 		console.warn("Could not found route for: " + url)
 	}
-
-	needUpdateRoute = false
+	else if(currRoute.readyFunc) {
+		currRoute.readyFunc()
+	}
 }
 
 const clearRoutes = function(remove) {

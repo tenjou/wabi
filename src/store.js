@@ -1,33 +1,27 @@
-import { update } from "./renderer"
 
-class Proxy 
-{
+class Proxy {
 	constructor(key, func) {
 		this.key = key
 		this.func = func
 	}
 }
 
-class WatcherBuffer 
-{
+class WatcherBuffer {
 	constructor() {
 		this.funcs = []
 		this.buffer = null
 	}
 }
 
-class RemoveInfo 
-{
+class RemoveInfo {
 	constructor(path, func) {
 		this.path = path
 		this.func = func
 	}
 }
 
-class Store
-{
-	constructor() 
-	{
+class Store {
+	constructor() {
 		this.data = {}
 		this.proxies = []
 		this.emitting = 0
