@@ -1,4 +1,3 @@
-export { VNode } from "./src/vnode"
 export { component } from "./src/component"
 
 export {

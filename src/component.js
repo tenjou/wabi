@@ -3,12 +3,14 @@ import { store } from "./store"
 
 let componentIndex = 0
 
-function WabiComponentInternal() 
-{
-	this.bindFuncs = {}
-	this.vnode = null
-	this.dirty = false
-	this.base = document.createTextNode("")
+function WabiComponentInternal() {
+	this.__bindFuncs = {}
+	this.__props = null
+	this.__parent = null
+	this.__indexEnd = 0
+	this.__dirty = false
+	this.__base = document.createTextNode("")
+	this.__base.component = this
 
 	const currState = {}
 	for(let key in this.state) {
@@ -39,11 +41,11 @@ WabiComponentInternal.prototype = {
 
 	reset() {
 		if(typeof this._bind === "string") {
-			store.unwatch(this._bind, this.bindFuncs.value)
+			store.unwatch(this._bind, this.__bindFuncs.value)
 		}
 		else {
 			for(let key in this._bind) {
-				store.unwatch(this._bind[key], this.bindFuncs[key])
+				store.unwatch(this._bind[key], this.__bindFuncs[key])
 			}
 		}
 
@@ -61,9 +63,10 @@ WabiComponentInternal.prototype = {
 		update(this)
 	},	
 
-	setState(key, value) 
-	{
-		if(this.$[key] === value) { return }
+	setState(key, value) {
+		if(this.$[key] === value) { 
+			return 
+		}
 
 		if(this._bind)
 		{
@@ -106,7 +109,7 @@ WabiComponentInternal.prototype = {
 				if(typeof prevBind === "string")
 				{
 					if(prevBind !== value) {
-						const func = this.bindFuncs.value
+						const func = this.__bindFuncs.value
 						store.unwatch(prevBind, func)
 						store.watch(value, func)
 					}	
@@ -118,9 +121,9 @@ WabiComponentInternal.prototype = {
 					for(let key in prevBind)
 					{
 						if(value[key] === undefined) {
-							const func = this.bindFuncs[key]
+							const func = this.__bindFuncs[key]
 							store.unwatch(prevBind[key], func)
-							this.bindFuncs[key] = undefined
+							this.__bindFuncs[key] = undefined
 						}
 					}
 
@@ -129,7 +132,7 @@ WabiComponentInternal.prototype = {
 						const bindPath = value[key]
 						if(prevBind[key] !== bindPath)
 						{
-							let func = this.bindFuncs[key]
+							let func = this.__bindFuncs[key]
 							if(!func) {
 								func = (payload) => {
 									this.handleAction(key, payload.value)
@@ -146,14 +149,14 @@ WabiComponentInternal.prototype = {
 			else
 			{
 				if(typeof prevBind === "string") {
-					store.unwatch(prevBind, this.bindFuncs.value)
+					store.unwatch(prevBind, this.__bindFuncs.value)
 					this.$.value = this.state.value
 				}
 				else
 				{
 					for(let key in prevBind) {
-						store.unwatch(prevBind[key], this.bindFuncs[key])
-						this.bindFuncs[key] = undefined
+						store.unwatch(prevBind[key], this.__bindFuncs[key])
+						this.__bindFuncs[key] = undefined
 						this.$[key] = this.state[key]
 					}
 				}
@@ -167,7 +170,7 @@ WabiComponentInternal.prototype = {
 					this.handleAction("value", payload.value)
 				}
 
-				this.bindFuncs.value = func
+				this.__bindFuncs.value = func
 				store.watch(value, func)
 				this.$.value = store.get(value)
 			}
@@ -182,7 +185,7 @@ WabiComponentInternal.prototype = {
 						this.handleAction(key, payload.value)
 					}
 
-					this.bindFuncs[key] = func
+					this.__bindFuncs[key] = func
 					store.watch(bindValue, func)
 					this.$[key] = store.get(bindValue)
 				}
