@@ -16,34 +16,32 @@ function Route(regexp, component, enterFunc, exitFunc, readyFunc) {
 	this.readyFunc = readyFunc || null
 }
 
-const update = function(instance) {
-	if(instance.dirty) { return }
-	instance.dirty = true
+const update = (component) => {
+	if(component._dirty) { return }
+	component._dirty = true
 
-	updateBuffer.push(instance)
+	updateBuffer.push(component)
 	needUpdate = true
 }
 
-const renderLoop = function() {
+const renderLoop = () => {
 	if(needUpdate) {
 		updateRender()
 	}
-
 	if(needUpdateRoute) {
 		updateRoute()
 	}
-
 	window.requestAnimationFrame(renderLoop)
 }
 
-const updateRender = function() {
+const updateRender = () => {
 	updateBuffer.sort(sortByDepth)
 
-	for(let n = 0; n < updateBuffer.length; n++) 
-	{
+	for(let n = 0; n < updateBuffer.length; n++) {
 		const node = updateBuffer[n]
-		if(!node.dirty) { continue }
-		
+		if(!node._dirty) { 
+			continue 
+		}
 		renderInstance(node)
 	}
 
@@ -51,16 +49,16 @@ const updateRender = function() {
 	needUpdate = false	
 }
 
-const sortByDepth = function(a, b) {
+const sortByDepth = (a, b) => {
 	return a.depth - b.depth
 }
 
-const route = function(regexp, component, enterFunc, exitFunc, readyFunc) {
+const route = (regexp, component, enterFunc, exitFunc, readyFunc) => {
 	routes.push(new Route(regexp, component, enterFunc, exitFunc, readyFunc))
 	needUpdateRoute = true
 }
 
-const updateRoute = function() {
+const updateRoute = () => {
 	needUpdateRoute = false
 
 	currRouteResult.length = 0
@@ -77,8 +75,9 @@ const updateRoute = function() {
 			while(result = regex.exec(url)) {
 				currRouteResult.push(result)
 			}
-
-			if(currRouteResult.length === 0) { continue }
+			if(currRouteResult.length === 0) { 
+				continue 
+			}
 		}
 
 		if(currRoute && currRoute.exitFunc) {
