@@ -133,7 +133,7 @@ const element = (element, props) => {
 	return node
 }
 
-const componentVoid = (ctor, props, here = false) => {
+const componentVoid = (ctor, props) => {
 	const parentElement = stack[stackIndex]
 	const index = indices[stackIndex]
 	let element = parentElement.childNodes[index]
@@ -179,9 +179,6 @@ const componentVoid = (ctor, props, here = false) => {
 	component.render()
 	component._dirty = false
 	component._numChildren = indices[stackIndex] - component._index
-	if(here) {
-		console.log("here")
-	}
 	if(component._numChildren < prevChildrenCount) {
 		removeRange(component._base, prevChildrenCount, component._numChildren)
 	}
@@ -268,8 +265,8 @@ const text = (text) => {
 				removeComponentExt(prevElement, parentElement)
 			}
 			else {
-				removeRange(prevElement, 0, prevElement.childNodes.length - 1)
 				parentElement.replaceChild(element, prevElement)
+				removeRange(prevElement, 0, prevElement.childNodes.length - 1)
 			}
 		}
 	}
@@ -333,7 +330,7 @@ const render = (component, parentElement, props) => {
 	stack[0] = parentElement
 	indices[0] = 0
 
-	componentVoid(component, props, true)
+	componentVoid(component, props)
 }
 
 const renderInstance = (component) => {

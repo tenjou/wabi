@@ -103,7 +103,7 @@ const updateRoute = () => {
 	}
 }
 
-const clearRoutes = function(remove) {
+const clearRoutes = (remove) => {
 	routes.length = 0
 	currRoute = null
 
