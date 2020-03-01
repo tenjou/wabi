@@ -133,7 +133,7 @@ const element = (element, props) => {
 	return node
 }
 
-const componentVoid = (ctor, props) => {
+const componentVoid = (ctor, props = null) => {
 	const parentElement = stack[stackIndex]
 	const index = indices[stackIndex]
 	let element = parentElement.childNodes[index]
@@ -158,6 +158,7 @@ const componentVoid = (ctor, props) => {
 		else {
 			component = createComponent(ctor)
 			parentElement.replaceChild(component._base, element)
+			removeNode(element)
 			diffComponentProps(component, props)			
 		}
 	}
