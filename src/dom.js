@@ -1,16 +1,17 @@
 Node.prototype.__props = null
 Node.prototype.__component = null
 
+const bufferSize = 128
 const namespaceSVG = "http://www.w3.org/2000/svg"
-const stack = new Array(128)
-const indices = new Array(128)
+const stack = new Array(bufferSize)
+const indices = new Array(bufferSize)
+const indicesElement = new Array(bufferSize)
 const components = {}
 let stackIndex = 0
 
 const elementOpen = (type, props = null, srcElement = null) => {
 	const parentElement = stack[stackIndex]
-	const index = indices[stackIndex]
-	const prevElement = parentElement.childNodes[index]
+	const prevElement = indicesElement[stackIndex]
 	let element = null
 
 	if(!prevElement) {
@@ -43,11 +44,11 @@ const elementOpen = (type, props = null, srcElement = null) => {
 
 			const component = prevElement.__component
 			if(component) {
-				parentElement.replaceChild(element, component._base)
-				removeComponentExt(prevElement, parentElement)
+				parentElement.insertBefore(element, component._base)
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
+				indicesElement[stackIndex] = prevElement.nextSibling
 			}
 
 			if(props) {
@@ -59,6 +60,7 @@ const elementOpen = (type, props = null, srcElement = null) => {
 		}
 		else {
 			element = prevElement
+			indicesElement[stackIndex] = prevElement.nextSibling
 
 			const prevProps = element.__props
 			if(props !== prevProps) {
@@ -101,6 +103,7 @@ const elementOpen = (type, props = null, srcElement = null) => {
 	stackIndex++
 	stack[stackIndex] = element
 	indices[stackIndex] = 0
+	indicesElement[stackIndex] = (element.childNodes.length > 0) ? element.childNodes[0] : null
 
 	return element
 }
@@ -135,8 +138,7 @@ const element = (element, props) => {
 
 const componentVoid = (ctor, props = null) => {
 	const parentElement = stack[stackIndex]
-	const index = indices[stackIndex]
-	let element = parentElement.childNodes[index]
+	let element = indicesElement[stackIndex]
 	let mounted = true
 	let component = null
 
@@ -149,8 +151,7 @@ const componentVoid = (ctor, props = null) => {
 			}
 			else {
 				const newComponent = createComponent(ctor)
-				parentElement.replaceChild(newComponent._base, component._base)
-				removeComponentExt(element, parentElement)
+				parentElement.insertBefore(newComponent._base, component._base)
 				component = newComponent
 				diffComponentProps(component, props)
 			}	
@@ -172,14 +173,15 @@ const componentVoid = (ctor, props = null) => {
 		component.mounted()
 	}
 
+	const index = indices[stackIndex]
 	const prevChildrenCount = component._numChildren
 
 	indices[stackIndex]++
-	component._index = index + 1
+	indicesElement[stackIndex] = component._base.nextSibling
 	component._depth = stackIndex
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex] - component._index
+	component._numChildren = indices[stackIndex] - index - 1
 	if(component._numChildren < prevChildrenCount) {
 		removeRange(component._base, prevChildrenCount, component._numChildren)
 	}
@@ -247,8 +249,7 @@ const createComponent = (ctor) => {
 
 const text = (text) => {
 	const parentElement = stack[stackIndex]
-	const index = indices[stackIndex]
-	const prevElement = parentElement.childNodes[index]
+	const prevElement = indicesElement[stackIndex]
 	let element = null
 
 	if(prevElement) {
@@ -263,7 +264,7 @@ const text = (text) => {
 			const component = prevElement.__component
 			if(component) {			
 				prevElement.replaceChild(element, component._base)
-				removeComponentExt(prevElement, parentElement)
+				removeComponentExt(prevElement, parentElement, indices[stackIndex])
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
@@ -326,26 +327,32 @@ const unsetProp = (element, name) => {
 	}	
 }
 
-const render = (component, parentElement, props) => {
+const render = (componentCls, parentElement, props) => {
 	stackIndex = 0
 	stack[0] = parentElement
 	indices[0] = 0
+	indicesElement[0] = (parentElement.childNodes.length > 0) ? parentElement.childNodes[0] : null
 
-	componentVoid(component, props)
+	const component = componentVoid(componentCls, props)
+	if(component._numChildren < parentElement.childNodes.length - 1) {
+		removeRange(parentElement, component._numChildren, parentElement.childNodes.length - 1)
+	}
 }
 
 const renderInstance = (component) => {
 	const prevChildrenCount = component._numChildren
+	const parentElement = component._base.parentElement
 
 	stackIndex = component._depth
-	stack[stackIndex] = component._base.parentElement
-	indices[stackIndex] = component._index
+	stack[stackIndex] = parentElement
+	indices[stackIndex] = 1
+	indicesElement[stackIndex] = component._base.nextSibling
 
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex] - component._index
+	component._numChildren = indices[stackIndex] - 1
 	if(component._numChildren < prevChildrenCount) {
-		removeRange(component._base.parentElement, component._index - 1, component._index + component._numChildren)
+		removeSiblings(component._base, component._numChildren, prevChildrenCount)
 	}
 
 	indices[stackIndex] = 0
@@ -355,7 +362,18 @@ const removeRange = (parentElement, indexStart, indexEnd) => {
 	const children = parentElement.childNodes
 	for(let n = indexEnd; n > indexStart; n--) {
 		const child = children[n]
-		removeNode(child, parentElement)
+		removeNode(child)
+		child.remove()
+	}
+}
+
+const removeSiblings = (child, countIs, countWas) => {
+	for(let n = 0; n < countIs; n++) {
+		child = child.nextSibling
+	}
+	for(let n = 0; n < countWas; n++) {
+		child = child.nextSibling
+		removeNode(child)
 		child.remove()
 	}
 }
@@ -393,7 +411,7 @@ const removeComponent = (element) => {
 	component.remove()
 }
 
-const removeComponentExt = (element, parentElement) => {
+const removeComponentExt = (element, parentElement, indexStart) => {
 	const component = element.__component
 	const buffer = components[component.__componentIndex]
 	if(buffer) {
@@ -412,8 +430,7 @@ const removeComponentExt = (element, parentElement) => {
 	}
 
 	const children = parentElement.childNodes
-	const indexStart = component._index - 1
-	const indexEnd = component._index + component._numChildren - 1
+	const indexEnd = indexStart + component._numChildren
 	for(let n = indexEnd; n > indexStart; n--) {
 		const child = children[n]
 		if(child.__component) {
