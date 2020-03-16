@@ -44,7 +44,13 @@ const elementOpen = (type, props = null, srcElement = null) => {
 
 			const component = prevElement.__component
 			if(component) {
-				parentElement.insertBefore(element, component._base)
+				if(component._depth === stackIndex) {
+					parentElement.replaceChild(element, component._base)
+					removeComponentExt(prevElement, parentElement)	
+				}
+				else {
+					parentElement.insertBefore(element, component._base)
+				}
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
@@ -122,6 +128,7 @@ const elementClose = (type) => {
 	indices[stackIndex] = 0
 	stackIndex--
 	indices[stackIndex]++
+	indicesElement[stackIndex] = element.nextSibling
 }
 
 const elementVoid = (type, props) => {
@@ -151,7 +158,14 @@ const componentVoid = (ctor, props = null) => {
 			}
 			else {
 				const newComponent = createComponent(ctor)
-				parentElement.insertBefore(newComponent._base, component._base)
+				if(component._depth === stackIndex) {
+					parentElement.replaceChild(newComponent._base, component._base)
+					removeComponent(element)
+					newComponent._numChildren = component._numChildren
+				}
+				else {
+					parentElement.insertBefore(newComponent._base, component._base)
+				}
 				component = newComponent
 				diffComponentProps(component, props)
 			}	
