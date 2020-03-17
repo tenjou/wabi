@@ -6,6 +6,7 @@ let componentIndex = 0
 function WabiComponentInternal() {
 	this._bindFuncs = {}
 	this._dirty = false
+	this._depth = -1
 	this._numChildren = 0
 	this._base = document.createTextNode("")
 	this._base.__component = this

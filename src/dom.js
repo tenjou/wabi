@@ -6,6 +6,7 @@ const namespaceSVG = "http://www.w3.org/2000/svg"
 const stack = new Array(bufferSize)
 const indices = new Array(bufferSize)
 const indicesElement = new Array(bufferSize)
+const childrenCounts = new Array(bufferSize)
 const components = {}
 let stackIndex = 0
 
@@ -187,17 +188,26 @@ const componentVoid = (ctor, props = null) => {
 		component.mounted()
 	}
 
-	const index = indices[stackIndex]
-	const prevChildrenCount = component._numChildren
-
-	indices[stackIndex]++
-	indicesElement[stackIndex] = component._base.nextSibling
 	component._depth = stackIndex
+
+	stackIndex++
+	stack[stackIndex] = parentElement
+	indices[stackIndex] = 0
+	indicesElement[stackIndex] = component._base.nextSibling
+	childrenCounts[stackIndex] = component._numChildren
+	
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex] - index - 1
-	if(component._numChildren < prevChildrenCount) {
-		removeRange(component._base, prevChildrenCount, component._numChildren)
+	component._numChildren = indices[stackIndex]
+	const childrenCount = childrenCounts[stackIndex]
+
+	stackIndex--
+	indices[stackIndex] += component._numChildren + 1
+	indicesElement[stackIndex] = indicesElement[stackIndex + 1] ? indicesElement[stackIndex + 1] : null
+
+	if(component._numChildren < childrenCount) {
+		childrenCounts[stackIndex] -= childrenCount - component._numChildren
+		removeSiblings(component._base, component._numChildren, childrenCount)
 	}
 
 	return component
@@ -354,19 +364,21 @@ const render = (componentCls, parentElement, props) => {
 }
 
 const renderInstance = (component) => {
-	const prevChildrenCount = component._numChildren
 	const parentElement = component._base.parentElement
 
 	stackIndex = component._depth
 	stack[stackIndex] = parentElement
-	indices[stackIndex] = 1
+	indices[stackIndex] = 0
 	indicesElement[stackIndex] = component._base.nextSibling
+	childrenCounts[stackIndex] = component._numChildren
 
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex] - 1
-	if(component._numChildren < prevChildrenCount) {
-		removeSiblings(component._base, component._numChildren, prevChildrenCount)
+	component._numChildren = indices[stackIndex]
+
+	const childrenCount = childrenCounts[stackIndex]
+	if(component._numChildren < childrenCount) {
+		removeSiblings(component._base, component._numChildren, childrenCount)
 	}
 
 	indices[stackIndex] = 0
