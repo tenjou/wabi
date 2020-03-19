@@ -50,6 +50,8 @@ WabiComponentInternal.prototype = {
 
 		this._bind = null
 		this._dirty = false	
+		this._depth = -1
+		this._numChildren = 0
 		const currState = this.$
 		const initState = this.state
 		for(let key in currState) {

@@ -1,12 +1,12 @@
 Node.prototype.__props = null
 Node.prototype.__component = null
 
-const bufferSize = 128
+const bufferSize = 64
 const namespaceSVG = "http://www.w3.org/2000/svg"
 const stack = new Array(bufferSize)
-const indices = new Array(bufferSize)
+const indices = new Uint32Array(bufferSize)
+const indicesMinimal = new Uint32Array(bufferSize)
 const indicesElement = new Array(bufferSize)
-const childrenCounts = new Array(bufferSize)
 const components = {}
 let stackIndex = 0
 
@@ -110,6 +110,7 @@ const elementOpen = (type, props = null, srcElement = null) => {
 	stackIndex++
 	stack[stackIndex] = element
 	indices[stackIndex] = 0
+	indicesMinimal[stackIndex] = 0
 	indicesElement[stackIndex] = (element.childNodes.length > 0) ? element.childNodes[0] : null
 
 	return element
@@ -123,12 +124,13 @@ const elementClose = (type) => {
 
 	const index = indices[stackIndex]
 	if(index < element.childNodes.length) {
-		removeRange(element, index - 1, element.childNodes.length - 1)
+		removeRange(element.childNodes, index - 1, element.childNodes.length - 1)
 	}
 
 	indices[stackIndex] = 0
 	stackIndex--
 	indices[stackIndex]++
+	indicesMinimal[stackIndex]++
 	indicesElement[stackIndex] = element.nextSibling
 }
 
@@ -144,7 +146,7 @@ const element = (element, props) => {
 	return node
 }
 
-const componentVoid = (ctor, props = null) => {
+const componentVoid = (ctor, props = null, debugs = false) => {
 	const parentElement = stack[stackIndex]
 	let element = indicesElement[stackIndex]
 	let mounted = true
@@ -161,8 +163,8 @@ const componentVoid = (ctor, props = null) => {
 				const newComponent = createComponent(ctor)
 				if(component._depth === stackIndex) {
 					parentElement.replaceChild(newComponent._base, component._base)
-					removeComponent(element)
 					newComponent._numChildren = component._numChildren
+					removeComponent(element)
 				}
 				else {
 					parentElement.insertBefore(newComponent._base, component._base)
@@ -190,26 +192,37 @@ const componentVoid = (ctor, props = null) => {
 
 	component._depth = stackIndex
 
+	if(debugs) {
+		console.log("debugs")
+	}
+
+	const childrenCount = component._numChildren
+	
 	stackIndex++
 	stack[stackIndex] = parentElement
 	indices[stackIndex] = 0
+	indicesMinimal[stackIndex] = 0
 	indicesElement[stackIndex] = component._base.nextSibling
-	childrenCounts[stackIndex] = component._numChildren
 	
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex]
-	const childrenCount = childrenCounts[stackIndex]
-
+	component._numChildren = indicesMinimal[stackIndex]
 	stackIndex--
-	indices[stackIndex] += component._numChildren + 1
-	indicesElement[stackIndex] = indicesElement[stackIndex + 1] ? indicesElement[stackIndex + 1] : null
+
+	indices[stackIndex] += (indices[stackIndex + 1] + 1)
+	indicesMinimal[stackIndex]++
+
+	if(debugs) {
+		console.log("debugs")
+	}	
 
 	if(component._numChildren < childrenCount) {
-		childrenCounts[stackIndex] -= childrenCount - component._numChildren
-		removeSiblings(component._base, component._numChildren, childrenCount)
+		indicesElement[stackIndex] = removeSiblings(component._base, component._numChildren, childrenCount)
 	}
-
+	else {
+		indicesElement[stackIndex] = indicesElement[stackIndex + 1] ? indicesElement[stackIndex + 1] : null
+	}
+	
 	return component
 }
 
@@ -302,6 +315,7 @@ const text = (text) => {
 	}
 
 	indices[stackIndex]++
+	indicesElement[stackIndex] = element.nextSibling
 
 	return element
 }
@@ -355,6 +369,7 @@ const render = (componentCls, parentElement, props) => {
 	stackIndex = 0
 	stack[0] = parentElement
 	indices[0] = 0
+	indicesMinimal[0] = 0
 	indicesElement[0] = (parentElement.childNodes.length > 0) ? parentElement.childNodes[0] : null
 
 	const component = componentVoid(componentCls, props)
@@ -364,48 +379,76 @@ const render = (componentCls, parentElement, props) => {
 }
 
 const renderInstance = (component) => {
-	const parentElement = component._base.parentElement
-
+	const childrenCount = component._numChildren
 	stackIndex = component._depth
-	stack[stackIndex] = parentElement
-	indices[stackIndex] = 0
+	indicesMinimal[stackIndex] = 0
+
+	stackIndex++
+	stack[stackIndex] = component._base.parentElement
+	indices[stackIndex] = 0	
+	indicesMinimal[stackIndex] = 0
 	indicesElement[stackIndex] = component._base.nextSibling
-	childrenCounts[stackIndex] = component._numChildren
 
 	component.render()
 	component._dirty = false
-	component._numChildren = indices[stackIndex]
+	component._numChildren = indicesMinimal[stackIndex]
+	stackIndex--
 
-	const childrenCount = childrenCounts[stackIndex]
 	if(component._numChildren < childrenCount) {
 		removeSiblings(component._base, component._numChildren, childrenCount)
 	}
-
-	indices[stackIndex] = 0
 }
 
-const removeRange = (parentElement, indexStart, indexEnd) => {
-	const children = parentElement.childNodes
+const removeRange = (children, indexStart, indexEnd) => {
 	for(let n = indexEnd; n > indexStart; n--) {
 		const child = children[n]
-		removeNode(child)
+		removeRangeNode(child)
 		child.remove()
 	}
 }
 
-const removeSiblings = (child, countIs, countWas) => {
-	for(let n = 0; n < countIs; n++) {
-		child = child.nextSibling
+const removeRangeNode = (element) => {
+	if(element.nodeType === 3 && element.__component) {
+		removeComponent(element)
 	}
-	for(let n = 0; n < countWas; n++) {
-		child = child.nextSibling
-		removeNode(child)
+	else {
+		const children = element.childNodes
+		for(let n = 0; n < children.length; n++) {
+			removeRangeNode(children[n])
+		}
+	}
+}
+
+const removeSiblings = (startChild, countIs, countWas) => {
+	for(let n = 0; n < countIs; n++) {
+		startChild = startChild.nextSibling
+	}
+
+	const num = countWas - countIs
+	for(let n = 0; n < num; n++) {
+		const child = startChild.nextSibling
+		if(child.nodeType === 3 && child.__component) {
+			const numChildren = child.__component._numChildrent
+			for(let m = 0; m < numChildren; m++) {
+				removeNode(child.nextSibling)
+				child.remove()
+			}
+			removeComponent(child)
+		}
+		else {
+			const children = child.childNodes
+			for(let n = 0; n < children.length; n++) {
+				removeNode(children[n])
+			}
+		}
 		child.remove()
 	}
+
+	return startChild.nextSibling
 }
 
 const removeNode = (element) => {
-	if(element.__component) {
+	if(element.nodeType === 3 && element.__component) {
 		removeComponent(element)
 	}
 	else {
