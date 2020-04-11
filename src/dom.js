@@ -119,7 +119,7 @@ const elementOpen = (type, props = null, srcElement = null) => {
 const elementClose = (type) => {
 	const element = stack[stackIndex]
 	if(element.localName !== type) {
-		console.error(`(Element.close) Unexpected element closed: ${type} but was expecting: ${node.localName}`)
+		console.error(`(Element.close) Unexpected element closed: ${type} but was expecting: ${element.localName}`)
 	}
 
 	const index = indices[stackIndex]
@@ -146,7 +146,7 @@ const element = (element, props) => {
 	return node
 }
 
-const componentVoid = (ctor, props = null, debugs = false) => {
+const componentVoid = (ctor, props = null) => {
 	const parentElement = stack[stackIndex]
 	let element = indicesElement[stackIndex]
 	let mounted = true
@@ -192,10 +192,6 @@ const componentVoid = (ctor, props = null, debugs = false) => {
 
 	component._depth = stackIndex
 
-	if(debugs) {
-		console.log("debugs")
-	}
-
 	const childrenCount = component._numChildren
 	
 	stackIndex++
@@ -211,10 +207,6 @@ const componentVoid = (ctor, props = null, debugs = false) => {
 
 	indices[stackIndex] += (indices[stackIndex + 1] + 1)
 	indicesMinimal[stackIndex]++
-
-	if(debugs) {
-		console.log("debugs")
-	}	
 
 	if(component._numChildren < childrenCount) {
 		indicesElement[stackIndex] = removeSiblings(component._base, component._numChildren, childrenCount)
@@ -469,10 +461,10 @@ const removeComponent = (element) => {
 		components[component.__componentIndex] = [ component ]
 	}
 
-	const props = element.__props
+	const props = component.state
 	if(props) {
 		for(let key in props) {
-			component[key] = null
+			component.$[key] = component.state[key]
 		}
 		element.__props = null
 	}
