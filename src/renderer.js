@@ -60,7 +60,7 @@ const route = (regexp, component, enterFunc, exitFunc, readyFunc) => {
 
 const updateRoute = () => {
 	needUpdateRoute = false
-
+	updateBuffer.length = 0
 	currRouteResult.length = 0
 	url = (document.location.protocol === "file:") ?
 		"/" + document.location.hash :
