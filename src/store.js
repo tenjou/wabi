@@ -438,22 +438,18 @@ class Store {
 		this.emitting--
 	}
 
-	get(key)
-	{
-		if(!key)
-		{
+	get(key) {
+		if(!key) {
 			if(key === undefined) {
 				return ""
 			}
-
 			return this.data
 		}
 
 		const buffer = key.split("/")
 		let data = this.data
 
-		for(let n = 0; n < buffer.length; n++)
-		{
+		for(let n = 0; n < buffer.length; n++) {
 			const id = buffer[n]
 			if(id === "@") {
 				return buffer[n - 1]
@@ -462,7 +458,7 @@ class Store {
 				data = data[id]
 			}
 			
-			if(data === undefined) {
+			if(data === undefined || data === null) {
 				return null
 			}
 		}

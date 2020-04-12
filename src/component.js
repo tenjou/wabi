@@ -3,12 +3,13 @@ import { store } from "./store"
 
 let componentIndex = 0
 
-function WabiComponentInternal() 
-{
-	this.bindFuncs = {}
-	this.vnode = null
-	this.dirty = false
-	this.base = document.createTextNode("")
+function WabiComponentInternal() {
+	this._bindFuncs = {}
+	this._dirty = false
+	this._depth = -1
+	this._numChildren = 0
+	this._base = document.createTextNode("")
+	this._base.__component = this
 
 	const currState = {}
 	for(let key in this.state) {
@@ -39,16 +40,18 @@ WabiComponentInternal.prototype = {
 
 	reset() {
 		if(typeof this._bind === "string") {
-			store.unwatch(this._bind, this.bindFuncs.value)
+			store.unwatch(this._bind, this._bindFuncs.value)
 		}
 		else {
 			for(let key in this._bind) {
-				store.unwatch(this._bind[key], this.bindFuncs[key])
+				store.unwatch(this._bind[key], this._bindFuncs[key])
 			}
 		}
 
 		this._bind = null
-		this.dirty = false	
+		this._dirty = false	
+		this._depth = -1
+		this._numChildren = 0
 		const currState = this.$
 		const initState = this.state
 		for(let key in currState) {
@@ -61,14 +64,13 @@ WabiComponentInternal.prototype = {
 		update(this)
 	},	
 
-	setState(key, value) 
-	{
-		if(this.$[key] === value) { return }
+	setState(key, value) {
+		if(this.$[key] === value) { 
+			return 
+		}
 
-		if(this._bind)
-		{
-			if(typeof this._bind === "string")
-			{
+		if(this._bind) {
+			if(typeof this._bind === "string") {
 				if(key === "value") {
 					store.set(this._bind, value, true)
 				}
@@ -77,8 +79,7 @@ WabiComponentInternal.prototype = {
 					update(this)
 				}
 			}
-			else
-			{
+			else {
 				const binding = this._bind[key]
 				if(binding) {
 					store.set(binding, value, true)
@@ -95,46 +96,37 @@ WabiComponentInternal.prototype = {
 		}
 	},
 
-	set bind(value)
-	{
+	set bind(value) {
 		const prevBind = this._bind
-
-		if(prevBind)
-		{
-			if(value)
-			{
-				if(typeof prevBind === "string")
-				{
+		if(prevBind) {
+			if(value) {
+				if(typeof prevBind === "string") {
 					if(prevBind !== value) {
-						const func = this.bindFuncs.value
+						const func = this._bindFuncs.value
 						store.unwatch(prevBind, func)
 						store.watch(value, func)
 					}	
 					
 					this.$.value = store.get(value)
 				}
-				else
-				{
-					for(let key in prevBind)
-					{
+				else {
+					for(let key in prevBind) {
 						if(value[key] === undefined) {
-							const func = this.bindFuncs[key]
+							const func = this._bindFuncs[key]
 							store.unwatch(prevBind[key], func)
-							this.bindFuncs[key] = undefined
+							this._bindFuncs[key] = undefined
 						}
 					}
 
-					for(let key in value)
-					{
+					for(let key in value) {
 						const bindPath = value[key]
-						if(prevBind[key] !== bindPath)
-						{
-							let func = this.bindFuncs[key]
+						if(prevBind[key] !== bindPath) {
+							let func = this._bindFuncs[key]
 							if(!func) {
 								func = (payload) => {
 									this.handleAction(key, payload.value)
 								}
-								this.bindFuncs[key] = func
+								this._bindFuncs[key] = func
 							}
 							store.unwatch(prevBind[key], func)
 							store.watch(bindPath, func)
@@ -143,46 +135,40 @@ WabiComponentInternal.prototype = {
 					}
 				}
 			}
-			else
-			{
+			else {
 				if(typeof prevBind === "string") {
-					store.unwatch(prevBind, this.bindFuncs.value)
+					store.unwatch(prevBind, this._bindFuncs.value)
 					this.$.value = this.state.value
 				}
-				else
-				{
+				else {
 					for(let key in prevBind) {
-						store.unwatch(prevBind[key], this.bindFuncs[key])
-						this.bindFuncs[key] = undefined
+						store.unwatch(prevBind[key], this._bindFuncs[key])
+						this._bindFuncs[key] = undefined
 						this.$[key] = this.state[key]
 					}
 				}
 			}
 		}
-		else
-		{
-			if(typeof value === "string")
-			{
+		else {
+			if(typeof value === "string") {
 				const func = (payload) => {
 					this.handleAction("value", payload.value)
 				}
 
-				this.bindFuncs.value = func
+				this._bindFuncs.value = func
 				store.watch(value, func)
 				this.$.value = store.get(value)
 			}
-			else
-			{
-				for(let key in value)
-				{
+			else {
+				for(let key in value) {
 					const bindValue = value[key]
-					if(!bindValue) { continue }
-
+					if(!bindValue) { 
+						continue 
+					}
 					const func = (payload) => {
 						this.handleAction(key, payload.value)
 					}
-
-					this.bindFuncs[key] = func
+					this._bindFuncs[key] = func
 					store.watch(bindValue, func)
 					this.$[key] = store.get(bindValue)
 				}
@@ -190,15 +176,14 @@ WabiComponentInternal.prototype = {
 		}
 
 		this._bind = value
-		this.dirty = true
+		this._dirty = true
 	},
 
 	get bind() {
 		return this._bind
 	},
 
-	updateAll()
-	{
+	updateAll() {
 		update(this)
 
 		const children = this.vnode.children
@@ -211,15 +196,13 @@ WabiComponentInternal.prototype = {
 	}
 }
 
-const component = (componentProto) =>
-{
+const component = (componentProto) => {
 	function WabiComponent() {
 		WabiComponentInternal.call(this)
 	}
 
 	const proto = Object.create(WabiComponentInternal.prototype)
-	for(let key in componentProto)
-	{
+	for(let key in componentProto) {
 		const param = Object.getOwnPropertyDescriptor(componentProto, key)
 		if(param.get || param.set) {
 			Object.defineProperty(proto, key, param)
@@ -232,10 +215,8 @@ const component = (componentProto) =>
 	proto.__componentIndex = componentIndex++
 
 	const states = proto.state
-	for(let key in states)
-	{
-		Object.defineProperty(proto, "$" + key,
-		{
+	for(let key in states) {
+		Object.defineProperty(proto, "$" + key, {
 			set(value) {
 				this.setState(key, value)
 			},
