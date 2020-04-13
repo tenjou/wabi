@@ -1,4 +1,4 @@
-export { component } from "./src/component"
+export { component } from "./src/component.js"
 
 export {
 	elementOpen,
@@ -8,19 +8,19 @@ export {
 	componentVoid,
 	text,
 	render
-} from "./src/dom"
+} from "./src/dom.js"
 
 export { 
 	update,
 	route,
 	clearRoutes	
-} from "./src/renderer"
+} from "./src/renderer.js"
 
 export { 
 	store
-} from "./src/store"
+} from "./src/store.js"
 
 export {
 	lastSegment,
 	selectElementContents
-} from "./src/utils"
+} from "./src/utils.js"

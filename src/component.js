@@ -1,5 +1,5 @@
-import { update } from "./renderer"
-import { store } from "./store"
+import { update } from "./renderer.js"
+import { store } from "./store.js"
 
 let componentIndex = 0
 

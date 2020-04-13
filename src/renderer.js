@@ -1,4 +1,4 @@
-import { render, renderInstance, removeAll } from "./dom"
+import { render, renderInstance, removeAll } from "./dom.js"
 
 const updateBuffer = []
 const routes = []
