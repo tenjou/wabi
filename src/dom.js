@@ -297,7 +297,7 @@ const text = (text) => {
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
-				removeRange(prevElement, 0, prevElement.childNodes.length - 1)
+				removeRange(prevElement.childNodes, 0, prevElement.childNodes.length - 1)
 			}
 		}
 	}
@@ -366,7 +366,7 @@ const render = (componentCls, parentElement, props) => {
 
 	const component = componentVoid(componentCls, props)
 	if(component._numChildren < parentElement.childNodes.length - 1) {
-		removeRange(parentElement, component._numChildren, parentElement.childNodes.length - 1)
+		removeRange(parentElement.childNodes, component._numChildren, parentElement.childNodes.length - 1)
 	}
 }
 
@@ -510,7 +510,7 @@ const removeComponentExt = (element, parentElement, indexStart) => {
 }
 
 const removeAll = () => {
-	removeRange(document.body, 0, document.body.childNodes.length - 1)
+	removeRange(document.body.childNodes, 0, document.body.childNodes.length - 1)
 }
 
 export { 

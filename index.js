@@ -21,6 +21,5 @@ export {
 } from "./src/store.js"
 
 export {
-	lastSegment,
 	selectElementContents
 } from "./src/utils.js"
