@@ -46,8 +46,8 @@ const elementOpen = (type, props = null, srcElement = null) => {
 			const component = prevElement.__component
 			if(component) {
 				if(component._depth === stackIndex) {
+					removeComponentExt(prevElement)
 					parentElement.replaceChild(element, component._base)
-					removeComponentExt(prevElement, parentElement)	
 				}
 				else {
 					parentElement.insertBefore(element, component._base)
@@ -276,7 +276,7 @@ const createComponent = (ctor) => {
 	return component
 }
 
-const text = (text) => {
+const text = (value) => {
 	const parentElement = stack[stackIndex]
 	const prevElement = indicesElement[stackIndex]
 	let element = null
@@ -284,16 +284,16 @@ const text = (text) => {
 	if(prevElement) {
 		if(prevElement.nodeType === 3) {
 			element = prevElement
-			if(prevElement.nodeValue !== text) {
-				prevElement.nodeValue = text
+			if(prevElement.nodeValue !== value) {
+				prevElement.nodeValue = value
 			}
 		}
 		else {
-			element = document.createTextNode(text)
+			element = document.createTextNode(value)
 			const component = prevElement.__component
 			if(component) {			
 				prevElement.replaceChild(element, component._base)
-				removeComponentExt(prevElement, parentElement, indices[stackIndex])
+				removeComponentExt(prevElement)
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
@@ -302,7 +302,7 @@ const text = (text) => {
 		}
 	}
 	else {
-		element = document.createTextNode(text)
+		element = document.createTextNode(value)
 		parentElement.appendChild(element)
 	}
 
@@ -364,9 +364,10 @@ const render = (componentCls, parentElement, props) => {
 	indicesMinimal[0] = 0
 	indicesElement[0] = (parentElement.childNodes.length > 0) ? parentElement.childNodes[0] : null
 
-	const component = componentVoid(componentCls, props)
-	if(component._numChildren < parentElement.childNodes.length - 1) {
-		removeRange(parentElement.childNodes, component._numChildren, parentElement.childNodes.length - 1)
+	componentVoid(componentCls, props)
+
+	if(indices[0] < parentElement.childNodes.length) {
+		removeRange(parentElement.childNodes, indices[0], parentElement.childNodes.length - 1)
 	}
 }
 
@@ -472,7 +473,7 @@ const removeComponent = (element) => {
 	component.remove()
 }
 
-const removeComponentExt = (element, parentElement, indexStart) => {
+const removeComponentExt = (element) => {
 	const component = element.__component
 	const buffer = components[component.__componentIndex]
 	if(buffer) {
@@ -490,10 +491,8 @@ const removeComponentExt = (element, parentElement, indexStart) => {
 		element.__props = null
 	}
 
-	const children = parentElement.childNodes
-	const indexEnd = indexStart + component._numChildren
-	for(let n = indexEnd; n > indexStart; n--) {
-		const child = children[n]
+	for(let n = 0; n < component._numChildren; n++) {
+		const child = component._base.nextSibling	
 		if(child.__component) {
 			removeComponent(child)
 		}
