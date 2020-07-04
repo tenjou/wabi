@@ -307,6 +307,7 @@ const text = (value) => {
 	}
 
 	indices[stackIndex]++
+	indicesMinimal[stackIndex]++
 	indicesElement[stackIndex] = element.nextSibling
 
 	return element
