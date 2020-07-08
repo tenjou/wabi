@@ -55,15 +55,14 @@ class Store {
 		})
 	}
 
-	update(key, value) {
+	update(key) {
 		this.dispatch({
 			action: "UPDATE",
 			key
 		})
 	}
 	
-	dispatch(data)
-	{
+	dispatch(data) {
 		if(this.globalProxy) {
 			this.globalProxy(data)
 		}
@@ -72,8 +71,7 @@ class Store {
 		}
 	}
 
-	performSet(payload, promise)
-	{
+	performSet(payload, promise) {
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
 
@@ -98,8 +96,7 @@ class Store {
 				}, tuple.watchers, "SET", tuple.key, payload.value)				
 			}
 		}
-		else 
-		{
+		else {
 			this.data = payload.value
 
 			if(promise) {
@@ -121,8 +118,7 @@ class Store {
 		}
 	}
 
-	performAdd(payload, promise)
-	{
+	performAdd(payload, promise) {
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
 
@@ -165,10 +161,18 @@ class Store {
 				}
 			}
 		}
+
+		const watchers = tuple.watchers.buffer[tuple.key]
+		if(watchers) {
+			this.emitWatchers({
+				action: "SET",
+				key: payload.key,
+				value: tuple.data[tuple.key]
+			}, watchers)
+		}
 	}
 
-	performRemove(payload, promise)
-	{
+	performRemove(payload, promise) {
 		const tuple = this.getData(payload.key)
 		if(!tuple) { return }
 
@@ -255,6 +259,7 @@ class Store {
 
 		const watchers = tuple.watchers.buffer[tuple.key]
 		if(!watchers) { return }
+
 		this.emitWatchers({
 			action: "SET",
 			key: payload.key,
@@ -466,8 +471,7 @@ class Store {
 		return data
 	}
 
-	getData(path)
-	{
+	getData(path) {
 		if(!path) {
 			const tuple = {
 				data: this.data,
@@ -479,7 +483,7 @@ class Store {
 		}
 
 		const keys = path.split("/")
-		const num = keys.length - 1;
+		const num = keys.length - 1
 		if(num === 0) {
 			const tuple = {
 				data: this.data,
@@ -492,9 +496,7 @@ class Store {
 
 		let data = this.data
 		let watchers = this.watchers
-
-		for(let n = 0; n < num; n++)
-		{
+		for(let n = 0; n < num; n++) {
 			const key = keys[n]
 			const newData = data[key]
 			if(!newData) {
