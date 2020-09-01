@@ -55,6 +55,7 @@ const elementOpen = (type, props = null, srcElement = null) => {
 			}
 			else {
 				parentElement.replaceChild(element, prevElement)
+				removeRangeNode(prevElement)
 				indicesElement[stackIndex] = prevElement.nextSibling
 			}
 
